@@ -1,14 +1,16 @@
 <template>
-  <router-view></router-view>
+	<div id="app">
+		<router-view></router-view>
+		<router-link to="/home"></router-link> 
+		<router-link to="/test"></router-link> 
+	</div>
 </template>
 
 <script>
+
 export default {
-  name: 'app'
-}
+};
 </script>
-<style lang="less">
-  #app {
-    height: 100%;
-  }
+
+<style>
 </style>

@@ -6,17 +6,17 @@
         <!-- 登录div -->
         <div class="login-form" >
             <!-- 登录表单 -->
-            <form class="layui-form" id="form-login">
+            <form class="layui-form">
                 <div class="layui-form-item">
                     <i class="layui-icon layui-icon-username"></i>
-                    <input type="text" name="user-name" required  lay-verify="username" placeholder="用户名" autocomplete="off" class="layui-input" />
+                    <input type="text" name="username" required  lay-verify="username" placeholder="用户名" autocomplete="off" class="layui-input" />
                 </div>
                 <div class="layui-form-item">
                     <i class="layui-icon layui-icon-password"></i>
                     <input type="password" name="passwd" required  lay-verify="passwd" placeholder="密码" autocomplete="off" class="layui-input" />
                 </div>
                 <div class="login-form-item">
-                    <button lay-submit class="layui-btn layui-btn-fluid layui-btn-normal" id="login-bt">登录</button>
+                    <button lay-submit class="layui-btn layui-btn-fluid layui-btn-normal" lay-filter="formLoginDemo" id="login-bt">登录</button>
                 </div>
                 <!-- 注册 -->
                 <div class="reg-box layui-form-item links">
@@ -31,7 +31,7 @@
             <form class="layui-form" action="">
                 <div class="layui-form-item">
                     <i class="layui-icon layui-icon-username"></i>
-                    <input type="text" name="user-name" required  lay-verify="username" placeholder="用户名" autocomplete="off" class="layui-input" />
+                    <input type="text" name="username" required  lay-verify="username" placeholder="用户名" autocomplete="off" class="layui-input" />
                 </div>
                 <div class="layui-form-item">
                     <i class="layui-icon layui-icon-password"></i>
@@ -60,39 +60,55 @@
 import 'layui/dist/layui'
 import 'layui/dist/css/layui.css'
 import 'layui/dist/css/modules/layer/default/layer.css'
-import * as $ from 'jquery'
+import $ from 'jquery'
+import { onMounted } from 'vue'
 
-    export default {}
+    var form = layui.form;
+    var layer = layui.layer;
+
+    export default {
+        mounted() {
+            // console.log("mounted:",this.$router);
+            var the = this; 
+
+            //登录表单提交事件
+            form.on('submit(formLoginDemo)', function(data) {
+                console.log(data.field);
+                if(data.field.username == "admin" && data.field.passwd == "888888") {
+                    layer.msg('登录成功');
+                    // console.log(the.$router);
+                    the.$router.push("/home");
+                }else {
+                    layer.msg("用户名或密码错误")
+                }   
+                return false;
+            });
+        },
+    }
+
+   
     $( function() {
         //点击注册的连接    
         $('#reg-link').on('click', function() {
-            $('.login-form').hide()
-            $('.reg-form').show()
+            $('.login-form').hide();
+            $('.reg-form').show();
         })
 
         $('#login-link').on('click', function() {
-            $('.login-form').show()
-            $('.reg-form').hide()
+            $('.login-form').show();
+            $('.reg-form').hide();
         })
-    })
+    });
 
-    //登录表单提交事件
-    $('#form-login').submit(function(e){
-        e.preventDefault()
-        var data = $(this).serialize()
-        console.log(data)
-        var layer = layui.layer
-        layer.msg('登录成功')
-        //location.href = "index.html"
-    })
+
+  
 
     // layui自定义校验规则
-    var form = layui.form
     form.verify({
         passwd: [
             /^[\S]{6,12}$/,'密码必须6到12位，且不能出现空格'
         ] 
-    })
+})
 </script>
 
 <style lang="less" scoped>
@@ -100,7 +116,7 @@ import * as $ from 'jquery'
         height: 100%;
         margin: 0%;
         padding: 0;
-        background-color: rgb(97, 187, 187);
+        background-color: #3776ab;
     }
 
     .loginAndRegiest {
