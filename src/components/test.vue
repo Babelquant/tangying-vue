@@ -1,292 +1,154 @@
 <template>
-<div class="top-charts-h flex column">
-    <div class="flex flex-centor top-charts-h">
-        <div id="hot-stocks-chart" class="top-charts" ref="hotChart"></div>
-        <div class="top-charts flex column">
-          <div id="concept-rank" style="height:314px;"></div>
-          <div class="flex:1">
-          </div>
-        </div>
-        <div id="candlestick" class="top-charts"></div>
-    </div>
-    <div class="flex: 1"></div>
-</div>
+  <div> <div id="hot-chart" class="basic-charts"></div></div>
 </template>
 
 <script>
-  export default {
-    mounted() {
-      this.initCandlestickChart();
-    },
-    methods: {
-      initCandlestickChart() {
-        var chartDom = document.getElementById('candlestick');
-        var candlestickChart = this.$echarts.init(chartDom);
-        var option;
+      export default {
+        data() {
+            return {
+                hotRankChart: new Object(),
+            }
+        },
+        mounted() {
+          this.initHotRankChart();
+          this.setHotRankChart();
+        },
+        methods: {
+            formatterDate(date) {
+                if(!date) {
+                    return "";
+                };
+                var year = date.getFullYear();
+                var month = date.getMonth()+1;
+                var day = date.getDate();
+                if (month<10) {
+                    month = "0"+month;
+                };
+                if (day<10) {
+                    day = "0"+day;
+                };
+                var nowDate = year + "-" +month + "-" +day;
+                return nowDate
+            },
+            initHotRankChart() {
+                const hotDom = document.getElementById('hot-chart');
+                this.hotRankChart = this.$echarts.init(hotDom);
+            },
+            setHotRankChart() {
+                var option;
+                var top10_stocks;
+                
+                this.axios.get('/tangying/api/v1/data/hot10_stocks/').then(res => {
+                    top10_stocks = res.data;
+                });
 
-        const upColor = '#00da3c';
-        const downColor = '#ec0000';
-        function splitData(rawData) {
-          let categoryData = [];
-          let values = [];
-          let volumes = [];
-          for (let i = 0; i < rawData.length; i++) {
-            categoryData.push(rawData[i].splice(0, 1)[0]);
-            values.push(rawData[i]);
-            volumes.push([i, rawData[i][4], rawData[i][0] > rawData[i][1] ? 1 : -1]);
-          }
-          return {
-            categoryData: categoryData,
-            values: values,
-            volumes: volumes
-          };
-        }
-        function calculateMA(dayCount, data) {
-          var result = [];
-          for (var i = 0, len = data.values.length; i < len; i++) {
-            if (i < dayCount) {
-              result.push('-');
-              continue;
-            }
-            var sum = 0;
-            for (var j = 0; j < dayCount; j++) {
-              sum += data.values[i - j][1];
-            }
-            result.push(+(sum / dayCount).toFixed(3));
-          }
-          return result;
-        }
-        this.axios.get('/tangying/api/v1/data/candlestick/'+'000001.XSHE'+'/',).then( res => {
-          var data = splitData(res.data);
-          candlestickChart.setOption(
-            (option = {
-              animation: false,
-              legend: {
-                bottom: 10,
-                left: 'center',
-                data: ['Dow-Jones index', 'MA5', 'MA10', 'MA20', 'MA30']
-              },
-              // tooltip: {
-              //   trigger: 'axis',
-              //   axisPointer: {
-              //     type: 'cross'
-              //   },
-              //   borderWidth: 1,
-              //   borderColor: '#ccc',
-              //   padding: 10,
-              //   textStyle: {
-              //     color: '#000'
-              //   },
-              //   position: function (pos, params, el, elRect, size) {
-              //     const obj = {
-              //       top: 10
-              //     };
-              //     obj[['left', 'right'][+(pos[0] < size.viewSize[0] / 2)]] = 30;
-              //     return obj;
-              //   }
-              //   // extraCssText: 'width: 170px'
-              // },
-              axisPointer: {
-                link: [
-                  {
-                    xAxisIndex: 'all'
-                  }
-                ],
-                label: {
-                  backgroundColor: '#777'
-                }
-              },
-              toolbox: {
-                feature: {
-                  dataZoom: {
-                    yAxisIndex: false
-                  },
-                  brush: {
-                    type: ['lineX', 'clear']
-                  }
-                }
-              },
-              brush: {
-                xAxisIndex: 'all',
-                brushLink: 'all',
-                outOfBrush: {
-                  colorAlpha: 0.1
-                }
-              },
-              visualMap: {
-                show: false,
-                seriesIndex: 5,
-                dimension: 2,
-                pieces: [
-                  {
-                    value: 1,
-                    color: downColor
-                  },
-                  {
-                    value: -1,
-                    color: upColor
-                  }
-                ]
-              },
-              grid: [
-                {
-                  left: '10%',
-                  right: '8%',
-                  height: '50%'
-                },
-                {
-                  left: '10%',
-                  right: '8%',
-                  top: '63%',
-                  height: '16%'
-                }
-              ],
-              xAxis: [
-                {
-                  type: 'category',
-                  data: data.categoryData,
-                  boundaryGap: false,
-                  axisLine: { onZero: false },
-                  splitLine: { show: false },
-                  min: 'dataMin',
-                  max: 'dataMax',
-                  axisPointer: {
-                    z: 100
-                  }
-                },
-                {
-                  type: 'category',
-                  gridIndex: 1,
-                  data: data.categoryData,
-                  boundaryGap: false,
-                  axisLine: { onZero: false },
-                  axisTick: { show: false },
-                  splitLine: { show: false },
-                  axisLabel: { show: false },
-                  min: 'dataMin',
-                  max: 'dataMax'
-                }
-              ],
-              yAxis: [
-                {
-                  scale: true,
-                  splitArea: {
-                    show: true
-                  }
-                },
-                {
-                  scale: true,
-                  gridIndex: 1,
-                  splitNumber: 2,
-                  axisLabel: { show: false },
-                  axisLine: { show: false },
-                  axisTick: { show: false },
-                  splitLine: { show: false }
-                }
-              ],
-              dataZoom: [
-                {
-                  type: 'inside',
-                  xAxisIndex: [0, 1],
-                  start: 98,
-                  end: 100
-                },
-                {
-                  show: true,
-                  xAxisIndex: [0, 1],
-                  type: 'slider',
-                  top: '85%',
-                  start: 98,
-                  end: 100
-                }
-              ],
-              series: [
-                {
-                  name: 'Dow-Jones index',
-                  type: 'candlestick',
-                  data: data.values,
-                  itemStyle: {
-                    color: upColor,
-                    color0: downColor,
-                    borderColor: undefined,
-                    borderColor0: undefined
-                  },
-                  tooltip: {
-                    formatter: function (param) {
-                      param = param[0];
-                      return [
-                        'Date: ' + param.name + '<hr size=1 style="margin: 3px 0">',
-                        'Open: ' + param.data[0] + '<br/>',
-                        'Close: ' + param.data[1] + '<br/>',
-                        'Lowest: ' + param.data[2] + '<br/>',
-                        'Highest: ' + param.data[3] + '<br/>'
-                      ].join('');
+                //请求热榜数据
+                var hot_stocks_data_url = '/tangying/api/v1/data/hot_stocks/';
+                this.axios.get(hot_stocks_data_url).then((res) => {
+                const datasetWithFilters = [];
+                const seriesList = [];
+                const _this = this
+                this.$echarts.util.each(top10_stocks, function (stock) {
+                    var datasetId = '_' + stock;
+                    var d = new Date();
+                    // var start_time = _this.formatterDate(d);
+                    var start_time = _this.formatterDate(d) + "T08:00";
+                    var end_time = _this.formatterDate(d) + "T17:00";
+
+                    datasetWithFilters.push({
+                    id: datasetId,
+                    fromDatasetId: 'dataset_raw',
+                    //数据集转换器
+                    transform: {
+                        type: 'filter', //转换方式
+                        config: {//转换条件
+                        and: [  //逻辑运算
+                            { dimension: 'Time', gte: start_time,parser: 'time' }, //维度:Year 操作符：gte(>=)  比较对象：1950 详细参考文档
+                            { dimension: 'Time', lte: end_time,parser: 'time' },
+                            { dimension: 'Name', '=': stock } //维度：Country 关系操作符：=  比较对象：country
+                        ]
+                        }
                     }
-                  }
-                },
+                    });
+                    seriesList.push({
+                        type: 'line',
+                        datasetId: datasetId,
+                        showSymbol: false, //只在主轴为类目轴时有效,随主轴标签间隔隐藏策略(选中一条线其他线变暗)
+                        name: stock,  //系列名称，用于tooltip的显示
+                        endLabel: {  //折线图尾部文字
+                            show: true,
+                            formatter: function (params) {   //回调：尾部文字样式
+                            return params.value[0] + ': ' + params.value[1];
+                            }
+                        },
+                        labelLayout: {  //标签重叠时是否挪动标签位置，防重叠
+                            moveOverlap: 'shiftY'  //垂直位移
+                            // hideOverlap: true
+                        },
+                        emphasis: {  //在高亮图形时，是否淡出其它数据的图形
+                            focus: 'series'  //淡出
+                        },
+                        encode: {  //可以定义 data 的哪个维度被编码成什么
+                            x: 'Time',  //表示维度Time映射到x轴
+                            y: 'Popularity',  //表示维度Popularity映射到y轴
+                            label: ['Name', 'Rank'],  //表示维度Country、Income的键、 值会在tooltip中显示
+                            itemName: 'Time',  //表示维度Time为数据项名称
+                            tooltip: ['Rank']  //表示维度Income会在tooltip中显示
+                        }
+                    });
+            });
+            option = {
+                // 动画时长
+                animationDuration: 20000,
+                dataset: [
                 {
-                  name: 'MA5',
-                  type: 'line',
-                  data: calculateMA(5, data),
-                  smooth: true,
-                  lineStyle: {
-                    opacity: 0.5
-                  }
+                    id: 'dataset_raw',
+                    source: res.data
                 },
-                {
-                  name: 'MA10',
-                  type: 'line',
-                  data: calculateMA(10, data),
-                  smooth: true,
-                  lineStyle: {
-                    opacity: 0.5
-                  }
+                ...datasetWithFilters
+                ],
+                title: {
+                text: '人气个股',
+                left: "center"
                 },
-                {
-                  name: 'MA20',
-                  type: 'line',
-                  data: calculateMA(20, data),
-                  smooth: true,
-                  lineStyle: {
-                    opacity: 0.5
-                  }
+                tooltip: { //多系列提示框浮层排列顺序
+                    order: 'valueAsc', //根据数据值, 降序排列
+                    trigger: 'axis',  //坐标轴触发
+                    textStyle: {
+                        fontSize: 6
+                    },
+                    // backgroundColor: 'rgba(255,255,255,0)', //浮窗透明度
+                    position: function (point, params, dom, rect, size) {
+                        // console.log(params)
+                        // 固定在顶部
+                        return [point[0], '10%'];
+                    },
+                    // enterable: true  //调试使用
                 },
-                {
-                  name: 'MA30',
-                  type: 'line',
-                  data: calculateMA(30, data),
-                  smooth: true,
-                  lineStyle: {
-                    opacity: 0.5
-                  }
-                },
-                {
-                  name: 'Volume',
-                  type: 'bar',
-                  xAxisIndex: 1,
-                  yAxisIndex: 1,
-                  data: data.volumes
+                xAxis: {
+                type: 'time', //时间轴类型
+                nameLocation: 'end', //坐标轴名称显示位置
+                axisLabel: {
+                    formatter: '{M}/{d}\n{HH}:{mm}'
                 }
-              ]
-            }),
-            true
-          );
-          candlestickChart.dispatchAction({
-            type: 'brush',
-            areas: [
-              {
-                brushType: 'lineX',
-                coordRange: ['2016-06-02', '2016-06-20'],
-                xAxisIndex: 0
-              }
-            ]
-          });
-        });
-
-        option && candlestickChart.setOption(option);
+                },
+                yAxis: {
+                name: '人气值'
+                },
+                grid: {
+                    left: 60,
+                    right: 80,
+                    bottom: 32
+                },
+                series: seriesList
+            };
+            this.hotRankChart.setOption(option);
+            }).catch((er) => {
+                console.log("err:",er);
+            });
+            },
+        }
       }
-    }
-  }
 </script>
 
 <style>
@@ -294,14 +156,10 @@
         border: 1px solid black;
     } */
 
-   .top-charts {
+    .basic-charts {
         width: 600px;
         height: 500px;
         background-color: white;
-    }
-
-    .top-charts-h {
-        height: 500px;
     }
 
     .flex {

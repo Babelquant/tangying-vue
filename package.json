@@ -13,6 +13,7 @@
     "echarts.js": "^3.0.0-beta3",
     "element-ui": "^2.4.5",
     "vue": "^2.6.10",
+    "vue-marquee-component": "^1.0.0",
     "vue-router": "^3.0.3"
   },
   "devDependencies": {

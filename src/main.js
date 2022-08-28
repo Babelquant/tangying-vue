@@ -8,7 +8,9 @@ import './assets/css/global.css'
 import * as echarts from 'echarts'
 import './plugins/charts.js'
 import axios from 'axios'
+import VueMarquee from 'vue-marquee-component'
 
+Vue.use(VueMarquee)
 // Vue.prototype.axios = axios
 Vue.prototype.$echarts = echarts
 Vue.config.productionTip = false

@@ -1,122 +1,317 @@
 <template>
-<div class="top-charts-h flex column">
-    <div class="flex flex-centor top-charts-h">
-        <div id="hot-stocks-chart" class="top-charts" ref="hotChart"></div>
-        <div class="top-charts flex column">
-          <div id="concept-rank" style="height:280px;"></div>
-          <div class="flex:1">
-              <el-table
-                :data="tableData"
-                height= 190
-                style="width: 100%">
-                <el-table-column
-                prop="Name"
-                label="股票"
-                width="80">
-                </el-table-column>
-                <el-table-column
-                prop="Latest"
-                label="涨停价"
-                width="75">
-                </el-table-column>
-                <el-table-column
-                prop="Currency_value"
-                label="流通值"
-                width="75">
-                </el-table-column>
-                <el-table-column
-                prop="_Reason_type"
-                label="涨停原因"
-                width="130">
-                </el-table-column>
-                <el-table-column
-                prop="Limitup_type"
-                label="涨停形态"
-                width="80">
-                </el-table-column>
-                <el-table-column
-                prop="High_days"
-                label="几天几板"
-                width="80">
-                </el-table-column>
-                <el-table-column
-                prop="Change_rate"
-                label="换手率"
-                width="70">
-                </el-table-column>
-            </el-table>
-          </div>
-        </div>
-        <div class="top-charts flex column">
-            <div style="height:30px;margin-left: 5px;">
-                <el-autocomplete
-                    class="inline-input"
-                    v-model="state"
-                    :fetch-suggestions="querySearch"
-                    placeholder="股票名/股票代码"
-                    size="small"
-                    :trigger-on-focus="false"
-                    @select="handleSelect"
-                ></el-autocomplete>
+    <div class="flex column">
+        <!-- 第一行 -->
+        <div class="flex flex-centor div-height">
+            <div id="hot-stocks-chart" class="basic-charts"></div>
+            <div class="basic-charts flex column">
+                <div id="concept-rank" style="height:280px;"></div>
+                <div style="height:190px;">
+                    <el-table
+                        :data="limituptableData"
+                        height= 190
+                        style="width: 100%">
+                        <el-table-column
+                        prop="Name"
+                        label="股票"
+                        width="80">
+                        </el-table-column>
+                        <el-table-column
+                        prop="Latest"
+                        label="涨停价"
+                        width="75">
+                        </el-table-column>
+                        <el-table-column
+                        prop="Currency_value"
+                        label="流通值/亿"
+                        width="80">
+                        </el-table-column>
+                        <el-table-column
+                        prop="_Reason_type"
+                        label="涨停原因"
+                        width="130">
+                        </el-table-column>
+                        <el-table-column
+                        prop="Limitup_type"
+                        label="涨停形态"
+                        width="80">
+                        </el-table-column>
+                        <el-table-column
+                        prop="High_days"
+                        label="几天几板"
+                        width="80">
+                        </el-table-column>
+                        <el-table-column
+                        prop="Change_rate"
+                        label="换手率"
+                        width="70">
+                        </el-table-column>
+                    </el-table>
+                </div>
+                <div class="flex:1">
+                    <div v-if="stretagyData.length != 0">
+                        <vue-marquee style="height:22px;" direction="top" :duration=stretagyData.length*2000 :showProgress="false">
+                            <vue-marquee-slide v-for="(item,index) in stretagyData" :key="index">
+                                <div style="height:20px;">打板策略：{{ item.Name }} &nbsp; 概念：{{ item._Reason_type}}</div>
+                            </vue-marquee-slide>
+                        </vue-marquee>
+                    </div>
+                </div>
             </div>
-            <div id="candlestick" style="height:470px;"></div>
+            <div class="basic-charts flex column">
+                <div style="height:30px;margin-left: 5px;">
+                    <el-autocomplete
+                        class="inline-input"
+                        v-model="search_stock"
+                        :fetch-suggestions="stockQuerySearch"
+                        placeholder="股票名/股票代码"
+                        size="small"
+                        :clearable="true"
+                        :maxlength="8"
+                        :trigger-on-focus="false"
+                        @select="stockSelect"
+                    ></el-autocomplete>
+                </div>
+                <div id="candlestick" style="height:470px;"></div>
+            </div>
+        </div>
+        <!-- 第二行 -->
+        <div class="flex flex-centor div-height">
+            <div class="basic-charts">
+                <el-scrollbar style="height: 100%" wrap-style="overflow-x:hidden;">
+                    <el-timelines>
+                        <el-timeline-item 
+                        v-for="(activity, index) in activities"
+                        :key="index"
+                        :color="activity.color"
+                        placement="top"
+                        :timestamp="activity.datetime">
+                        <el-card>
+                            <p v-html="activity.content"></p>
+                        </el-card>
+                        </el-timeline-item>
+                    </el-timelines>
+                </el-scrollbar>
+            </div>
+            <div class="basic-charts flex column">
+                <div style="height:30px;margin-left: 2px;margin-bottom: 2px;">
+                    <span>
+                        <el-select 
+                        v-model="search_concepts" 
+                        clearable 
+                        placeholder="概念"
+                        multiple
+                        collapse-tags
+                        filterable
+                        size="mini">
+                            <el-option
+                            v-for="item in allconcepts"
+                            :key="item.code"
+                            :label="item.name"
+                            :value="item.code">
+                            </el-option>
+                        </el-select>
+                    </span>
+                    <span style="margin-left:8px">
+                        <el-button 
+                        type="primary" 
+                        icon="el-icon-search" 
+                        size="mini"
+                        @click="searchConcepts">选股</el-button>
+                    </span>
+                </div>
+                <div style="height:350px;">
+                <el-table
+                    v-loading="concept_loading"
+                    :data="conceptstretagytableData"
+                    :default-sort = "{prop: 'concept_num', order: 'descending'}"
+                    height= 400
+                    style="width: 100%">
+                    <el-table-column
+                    prop="name"
+                    label="股票名称"
+                    width="85">
+                    </el-table-column>
+                    <el-table-column
+                    prop="concept"
+                    label="概念叠加"
+                    width="130">
+                    </el-table-column>
+                    <el-table-column
+                    prop="last_price"
+                    label="最新价"
+                    width="80">
+                    </el-table-column>
+                    <el-table-column
+                    prop="increase"
+                    label="近1周涨幅"
+                    sortable
+                    width="150">
+                    </el-table-column>
+                </el-table>
+                </div>
+            </div>
+            <div class="basic-charts flex column">
+                <div style="height:30px;margin-left: 2px;margin-bottom: 2px;">
+                    <el-button 
+                    type="primary" 
+                    size="mini" 
+                    plain
+                    @click="searchSharpfall">快速下跌</el-button>
+                </div>
+                <div style="height:350px;">
+                <el-table
+                    v-loading="sharpfall_loading"
+                    :data="sharpfallstretagytableData"
+                    height= 400
+                    style="width: 100%">
+                    <el-table-column
+                    prop="股票"
+                    label="股票名称"
+                    width="85">
+                    </el-table-column>
+                    <el-table-column
+                    prop="行业"
+                    label="行业"
+                    width="100">
+                    </el-table-column>
+                    <el-table-column
+                    prop="最新价"
+                    label="最新价"
+                    width="80">
+                    </el-table-column>
+                    <el-table-column
+                    prop="5日跌幅"
+                    label="5日跌幅"
+                    sortable
+                    width="100">
+                    </el-table-column>
+                    <el-table-column
+                    prop="月内跌幅"
+                    label="月内跌幅"
+                    width="100">
+                    </el-table-column>
+                    <el-table-column
+                    prop="半年最高跌幅"
+                    label="半年最高跌幅"
+                    width="120">
+                    </el-table-column>
+                </el-table>
+                </div>
+            </div>
         </div>
     </div>
-    <div class="flex: 1"></div>
-</div>
 </template>
 
 <script>
     export default {
         data() {
             return {
-                tableData: [],
-                restaurants: [],
-                state: '',
-                candlestickChart: new Object()
+                limituptableData: [],
+                conceptstretagytableData: [],
+                sharpfallstretagytableData: [],
+                allsecurities: [],
+                allconcepts: [],
+                stretagyData: [],
+                search_stock: '',
+                search_concepts: null,
+                candlestickChart: new Object(),
+                hotRankChart: new Object(),
+                timer: null,
+                concept_loading: false,
+                sharpfall_loading: false,
+                activities: []
             }
         },
         created() {
             this.fullData();
+            this.limitupStrategy();
+        },
+        beforeDestroy() {
+            clearInterval(this.timer);
+            this.timer = null;
         },
         mounted() {
             this.initHotRankChart();
+            this.setHotRankChart();
+            this.updateNews();
             this.initConceptRankChart();
-            this.initCandlestickChart();
-            this.setCandlestickOption();
+            // this.initCandlestickChart();
+            // this.setCandlestickOption();
             this.loadAllSecurities();
+
+            //10分钟更新一次热榜
+            this.timer = setInterval(() => {
+                setTimeout(this.setHotRankChart(),0)
+            },60000*10);
+            //5分钟更新一次新闻资讯
+            this.timer = setInterval(() => {
+                setTimeout(this.updateNews(),0)
+            },60000*5);
         },
         methods: {
             fullData () {
                 this.axios.get('/tangying/api/v1/data/limitup_stocks/').then( res => {
-                    this.tableData = res.data
+                    this.limituptableData = res.data
                 });
             },
-            querySearch(queryString, cb) {
-                // console.log("this:",this.restaurants)
-                var restaurants = this.restaurants;
-                var results = queryString ? restaurants.filter(this.createFilter(queryString)) : restaurants;
+            updateNews() {
+                this.axios.get('/tangying/api/v1/data/news/').then( res => {
+                    this.activities = res.data
+                });
+            },
+            limitupStrategy() {
+                this.axios.get('/tangying/api/v1/data/limitup_strategy/').then( res => {
+                    // this.stretagyData = res.data
+                    for (let i = 0; i < res.data.length; i++) {
+                        this.stretagyData.push(res.data[i]);
+                    }
+                });
+            },
+            stockQuerySearch(queryString, cb) {
+                var securities = this.allsecurities;
+                var results = queryString ? securities.filter(this.createFilter(queryString)) : securities;
                 // 调用 callback 返回建议列表的数据
                 cb(results);
             },
             createFilter(queryString) {
-                return (restaurant) => {
-                return (restaurant.value.toLowerCase().indexOf(queryString.toLowerCase()) === 0);
+                return (obj) => {
+                    return (obj.name.toLowerCase().indexOf(queryString.toLowerCase()) === 0);
                 };
             },
             loadAllSecurities() {
-                var all_securities
                 this.axios.get('/tangying/api/v1/data/all_securities/').then( res => {
                     // all_securities = res.data;
-                    this.restaurants = res.data;
+                    this.allsecurities = res.data;
                 });
-                // return all_securities;
+                this.axios.get('/tangying/api/v1/data/all_concepts/').then( res => {
+                    this.allconcepts = res.data;
+                });
             },
-            handleSelect(item) {
+            stockSelect(item) {
                 // console.log('select:',item.value);
-                this.setCandlestickOption(item.value,item.code);
-                // var chart = echarts.getInstanceByDom(document.getElementById('candlestick'));
-                // option.graphic.elements[0].style.text = item;
+                this.candlestickChart.clear()
+                this.setCandlestickOption(item.name,item.code);
+            },
+            searchConcepts() {
+                // console.log('get concept:',this.search_concepts);
+                let concepts = this.search_concepts;
+                this.concept_loading = true
+                // this.$set(this.loading,'concept',true)
+                if(concepts.length != 0){
+                    concepts = concepts.join(',');
+                    this.axios.get('/tangying/api/v1/data/concept_strategy/'+concepts+'/').then( res => {
+                        this.conceptstretagytableData = res.data
+                        // this.$set(this.loading,'concept',false)
+                        this.concept_loading = false
+                    });
+                }
+            },
+            searchSharpfall() {
+                this.sharpfall_loading = true
+                this.axios.get('/tangying/api/v1/data/sharpfall_strategy/').then( res => {
+                        this.sharpfallstretagytableData = res.data
+                        this.sharpfall_loading = false
+                    });
             },
             formatterDate(date) {
                 if(!date) {
@@ -135,8 +330,10 @@
                 return nowDate
             },
             initHotRankChart() {
-                var hotDom = document.getElementById('hot-stocks-chart');
-                var hotChart = this.$echarts.init(hotDom);
+                const hotDom = document.getElementById('hot-stocks-chart');
+                this.hotRankChart = this.$echarts.init(hotDom);
+            },
+            setHotRankChart() {
                 var option;
                 var top10_stocks;
                 
@@ -184,8 +381,8 @@
                             }
                         },
                         labelLayout: {  //标签重叠时是否挪动标签位置，防重叠
-                            // moveOverlap: 'shiftY'  //垂直位移
-                            hideOverlap: true
+                            moveOverlap: 'shiftY'  //垂直位移
+                            // hideOverlap: true
                         },
                         emphasis: {  //在高亮图形时，是否淡出其它数据的图形
                             focus: 'series'  //淡出
@@ -244,7 +441,7 @@
                 },
                 series: seriesList
             };
-            hotChart.setOption(option);
+            this.hotRankChart.setOption(option);
             }).catch((er) => {
                 console.log("err:",er);
             });
@@ -254,10 +451,10 @@
             var ConceptChart = this.$echarts.init(chartDom);
             var option;
 
-            const updateFrequency = 2000;
+            const updateFrequency = 5000;
             const dimension = 1; //哪一列作为横轴维度
 
-            this.axios.get('/tangying/api/v1/data/concept_stocks/').then( res => {
+            this.axios.get('/tangying/api/v1/data/concept_statistic/').then( res => {
                 const data = res.data;
                 const dates = [];
                 for (let i = 0; i < data.length; ++i) {    //抽取data中所有第3column的数据
@@ -266,7 +463,7 @@
                     };
                 }
                 let date_set = [...new Set(dates)]
-                console.log('dates:',date_set)
+                // console.log('dates:',date_set)
                 let startIndex = 1;  //保证data中的3号column有1个不同的值
                 let startDate = date_set[startIndex];
                 option = {
@@ -306,8 +503,8 @@
                         }
                     }
                     },
-                    animationDuration: 300,
-                    animationDurationUpdate: 300  //数据更新动画的时长。
+                    animationDuration: 500,
+                    animationDurationUpdate: 500  //数据更新动画的时长。
                 },
                 series: [
                     {
@@ -324,6 +521,8 @@
                         x: dimension,
                         y: 0
                     },
+                    z: 1,
+                    zlevel: 1,
                     label: {
                         show: true,
                         precision: 1,
@@ -334,7 +533,7 @@
                     }
                 ],
                 // Disable init animation.
-                animationDuration: 1000,
+                animationDuration: 0,
                 animationDurationUpdate: updateFrequency,
                 animationEasing: 'linear',        //初始动画的缓动效果
                 animationEasingUpdate: 'linear',  //数据更新动画的缓动效果
@@ -394,7 +593,7 @@
                     return [year, month, day].join('-');
                 };
                 function splitData(rawData) {
-                    console.log("type:",typeof(rawData))
+                    // console.log("type:",typeof(rawData))
                     let categoryData = [];
                     let values = [];
                     let volumes = [];
@@ -427,7 +626,7 @@
                 var data;
                 var _this = this
                 this.axios.get('/tangying/api/v1/data/candlestick/'+stock_code+'/',).then( res => {
-                    console.log(stock_name,stock_code,res)
+                    // console.log(stock_name,stock_code,res)
                     data = splitData(res.data);
                     _this.candlestickChart.setOption(
                     (option = {
@@ -597,18 +796,18 @@
                                 borderColor: undefined,
                                 borderColor0: undefined
                             },
-                            tooltip: {
-                                formatter: function (param) {
-                                param = param[0];
-                                return [
-                                    'Date: ' + param.name + '<hr size=1 style="margin: 3px 0">',
-                                    'Open: ' + param.data[0] + '<br/>',
-                                    'Close: ' + param.data[1] + '<br/>',
-                                    'Lowest: ' + param.data[2] + '<br/>',
-                                    'Highest: ' + param.data[3] + '<br/>'
-                                ].join('');
-                                }
-                            }
+                            // tooltip: {
+                            //     formatter: function (param) {
+                            //     param = param[0];
+                            //     return [
+                            //         'Date: ' + param.name + '<hr size=1 style="margin: 3px 0">',
+                            //         'Open: ' + param.data[0] + '<br/>',
+                            //         'Close: ' + param.data[1] + '<br/>',
+                            //         'Lowest: ' + param.data[2] + '<br/>',
+                            //         'Highest: ' + param.data[3] + '<br/>'
+                            //     ].join('');
+                            //     }
+                            // }
                             },
                             {
                             name: 'MA5',
@@ -678,13 +877,13 @@
     // * {
     //     border: 1px solid black;
     // }
-   .top-charts {
+   .basic-charts {
         width: 600px;
         height: 500px;
         background-color: white;
     }
 
-    .top-charts-h {
+    .div-height {
         height: 500px;
     }
 
