@@ -58,7 +58,7 @@
                 </div>
             </div>
             <div class="basic-charts flex column">
-                <div style="height:30px;margin-left: 5px;">
+                <div style="height:35px;margin-left: 5px;">
                     <el-autocomplete
                         class="inline-input"
                         v-model="search_stock"
@@ -71,14 +71,17 @@
                         @select="stockSelect"
                     ></el-autocomplete>
                 </div>
-                <div id="candlestick" style="height:470px;"></div>
+                <div id="candlestick" style="display: none;width: 1050px; height:650px">
+                    <div id="candlestickMain" style="width: 1050px; height:650px"></div>
+                </div>
+                <div id="limitupStatistic" style="height:450px;"></div>
             </div>
         </div>
         <!-- 第二行 -->
         <div class="flex flex-centor div-height">
             <div class="basic-charts">
                 <el-scrollbar style="height: 100%" wrap-style="overflow-x:hidden;">
-                    <el-timelines>
+                    <el-timeline>
                         <el-timeline-item 
                         v-for="(activity, index) in activities"
                         :key="index"
@@ -89,7 +92,7 @@
                             <p v-html="activity.content"></p>
                         </el-card>
                         </el-timeline-item>
-                    </el-timelines>
+                    </el-timeline>
                 </el-scrollbar>
             </div>
             <div class="basic-charts flex column">
@@ -203,6 +206,10 @@
 </template>
 
 <script>
+    var layer = layui.layer;
+    import $ from 'jquery';
+    var candlestickChart; //全局变量
+
     export default {
         data() {
             return {
@@ -214,12 +221,12 @@
                 stretagyData: [],
                 search_stock: '',
                 search_concepts: null,
-                candlestickChart: new Object(),
-                hotRankChart: new Object(),
+                hotRankChart: null,
                 timer: null,
                 concept_loading: false,
                 sharpfall_loading: false,
-                activities: []
+                activities: [],
+                dialogCandlestickVisible: false
             }
         },
         created() {
@@ -237,6 +244,7 @@
             this.initConceptRankChart();
             // this.initCandlestickChart();
             // this.setCandlestickOption();
+            this.initLimitupStatisticChart();
             this.loadAllSecurities();
 
             //10分钟更新一次热榜
@@ -268,14 +276,14 @@
                 });
             },
             stockQuerySearch(queryString, cb) {
-                var securities = this.allsecurities;
+                var securities = this.allsecurities
                 var results = queryString ? securities.filter(this.createFilter(queryString)) : securities;
                 // 调用 callback 返回建议列表的数据
                 cb(results);
             },
             createFilter(queryString) {
                 return (obj) => {
-                    return (obj.name.toLowerCase().indexOf(queryString.toLowerCase()) === 0);
+                    return (obj.value.toLowerCase().indexOf(queryString.toLowerCase()) === 0);
                 };
             },
             loadAllSecurities() {
@@ -289,8 +297,19 @@
             },
             stockSelect(item) {
                 // console.log('select:',item.value);
-                this.candlestickChart.clear()
-                this.setCandlestickOption(item.name,item.code);
+                this.$nextTick(() => {                       // Can't get dom width or height报错解决方法
+                    this.setCandlestickChart(item.code);
+                });
+                layer.open({
+                    type: 1,
+                    title: item.value,
+                    skin: 'layui-layer-rim', //加上边框
+                    area: ['60%', '80%'], //宽高 相对全屏的比例
+                    content: $('#candlestick'),
+                    end: function() {
+                        $('#candlestick').hide();
+                    }
+                });
             },
             searchConcepts() {
                 // console.log('get concept:',this.search_concepts);
@@ -351,8 +370,8 @@
                     var datasetId = '_' + stock;
                     var d = new Date();
                     // var start_time = _this.formatterDate(d);
-                    var start_time = _this.formatterDate(d) + "T08:00";
-                    var end_time = _this.formatterDate(d) + "T17:00";
+                    var start_time = _this.formatterDate(d) + "T09:20";
+                    var end_time = _this.formatterDate(d) + "T16:00";
 
                     datasetWithFilters.push({
                     id: datasetId,
@@ -407,7 +426,7 @@
                 ...datasetWithFilters
                 ],
                 title: {
-                text: '人气个股',
+                text: '人气榜',
                 left: "center"
                 },
                 tooltip: { //多系列提示框浮层排列顺序
@@ -572,13 +591,172 @@
                 }
             });
             },
-            initCandlestickChart() {
-                const chartDom = document.getElementById('candlestick');
-                this.candlestickChart = this.$echarts.init(chartDom);
-            },
-            setCandlestickOption(stock_name='平安银行',stock_code='000001.XSHE') {
+            initLimitupStatisticChart() {
+                var chartDom = document.getElementById('limitupStatistic');
+                var myChart = this.$echarts.init(chartDom);
                 var option;
+                var data_0_1 = [];
+                var data_1_2 = [];
+                var data_2_3 = [];
+                var success_1_2 = [];
+                var success_2_3 = [];
 
+
+                this.axios.get('/tangying/api/v1/data/limitup_statistic/').then( res => {
+                    const data = res.data;
+                    const dates = [];
+                    for (let i = 1; i < data.length; ++i) {    //抽取data中所有下标为2的数据
+                            dates.push(data[i][2]);  
+                    };
+                    let date_set = [...new Set(dates)];
+                    // console.log('dates:',date_set);
+
+                    //首板
+                    for  (let i = 0; i < date_set.length; ++i) {
+                        data_0_1.push(data.slice(1).filter(function (d) {  
+                            return d[2] === date_set[i] && d[0] == '首板';
+                        })[0][1]);
+                    };
+                    //1进2
+                    for  (let i = 0; i < date_set.length; ++i) {
+                        data_1_2.push(data.slice(1).filter(function (d) {  
+                            return d[2] === date_set[i] && d[0] == '2天2板';
+                        })[0][1]);
+                    };
+                    //2进3
+                    for  (let i = 0; i < date_set.length; ++i) {
+                        data_2_3.push(data.slice(1).filter(function (d) {  
+                            return d[2] === date_set[i] && d[0] == '3天3板';
+                        })[0][1]);
+                    };
+                    //1进2成功率
+                    for (let i = 1; i < data_1_2.length; ++i) {  
+                        success_1_2[i] = (data_1_2[i]/data_0_1[i-1]*100).toFixed(1)
+                    }
+                    //2进3成功率
+                    for (let i = 1; i < data_2_3.length; ++i) {  
+                        success_2_3[i] = (data_2_3[i]/data_1_2[i-1]*100).toFixed(1)
+                    }
+
+                    // console.log('data1:',data_1_2)
+                    option = {
+                    tooltip: {
+                        trigger: 'axis',
+                        axisPointer: {
+                        type: 'cross',
+                        crossStyle: {
+                            color: '#999'
+                        }
+                        }
+                    },
+                    toolbox: {
+                        feature: {
+                        dataView: { show: true, readOnly: false },
+                        magicType: { show: true, type: ['line', 'bar'] },
+                        restore: { show: true },
+                        saveAsImage: { show: true }
+                        }
+                    },
+                    legend: {
+                        data: ['1-2', '2-3', '1-2成功率', '2-3成功率']
+                    },
+                    xAxis: [
+                        {
+                        type: 'category',
+                        data: date_set,
+                        axisPointer: {
+                            type: 'shadow'
+                        },
+                        axisLabel: {
+                            rotate: -45, //刻度标签倾斜
+                            // formatter: function (value, index) {
+                            //     return value + 'kg';
+                            // }
+                        }
+                        }
+                    ],
+                    yAxis: [
+                        {
+                        type: 'value',
+                        name: '数量',
+                        min: 0,
+                        max: function(value) {
+                            return Math.ceil(value.max)
+                        },
+                        interval: 20,
+                        axisLabel: {
+                            formatter: '{value} 支'
+                        }
+                        },
+                        {
+                        type: 'value',
+                        name: '成功率',
+                        min: 0,
+                        max: 100,
+                        interval: 20,
+                        axisLabel: {
+                            formatter: '{value} %'
+                        }
+                        }
+                    ],
+                    series: [
+                        {
+                        name: '1-2',
+                        type: 'bar',
+                        tooltip: {
+                            valueFormatter: function (value) {
+                            return value + ' 支';
+                            }
+                        },
+                        data: data_1_2
+                        },
+                        {
+                        name: '2-3',
+                        type: 'bar',
+                        tooltip: {
+                            valueFormatter: function (value) {
+                            return value + ' 支';
+                            }
+                        },
+                        data: data_2_3
+                        },
+                        {
+                        name: '1-2成功率',
+                        type: 'line',
+                        yAxisIndex: 1,
+                        tooltip: {
+                            valueFormatter: function (value) {
+                            return value + ' %';
+                            }
+                        },
+                        data: success_1_2
+                        },
+                        {
+                        name: '2-3成功率',
+                        type: 'line',
+                        yAxisIndex: 1,
+                        tooltip: {
+                            valueFormatter: function (value) {
+                            return value + ' %';
+                            }
+                        },
+                        data: success_2_3
+                        }
+                    ]
+                    };
+                    myChart.setOption(option);
+                })
+
+            },
+            setCandlestickChart(stock_code) {
+                var chartDom = document.getElementById('candlestickMain');
+
+                if (candlestickChart == null||candlestickChart == '') {
+                    candlestickChart = this.$echarts.init(chartDom);
+                }else {
+                    candlestickChart.clear();
+                }
+                var option;
                 const upColor = '#00da3c';
                 const downColor = '#ec0000';
                 function formatDate(date) {
@@ -592,15 +770,17 @@
                     
                     return [year, month, day].join('-');
                 };
+                //分离数据
                 function splitData(rawData) {
                     // console.log("type:",typeof(rawData))
                     let categoryData = [];
                     let values = [];
                     let volumes = [];
                     for (let i = 0; i < rawData.length; i++) {
-                        categoryData.push(formatDate(rawData[i].splice(0, 1)[0]));
+                        // categoryData.push(formatDate(rawData[i].splice(0, 1)[0]));
+                        categoryData.push(rawData[i].splice(0, 1)[0]);
                         values.push(rawData[i]);
-                        volumes.push([i, rawData[i][4], rawData[i][0] > rawData[i][1] ? 1 : -1]);
+                        volumes.push([i, rawData[i][4], rawData[i][0] > rawData[i][1] ? -1 : 1]);
                     }
                     return {
                         categoryData: categoryData,
@@ -624,11 +804,11 @@
                     return result;
                 };
                 var data;
-                var _this = this
+                // var _this = this
                 this.axios.get('/tangying/api/v1/data/candlestick/'+stock_code+'/',).then( res => {
                     // console.log(stock_name,stock_code,res)
                     data = splitData(res.data);
-                    _this.candlestickChart.setOption(
+                    candlestickChart.setOption(
                     (option = {
                         animation: false,
                         legend: {
@@ -770,29 +950,29 @@
                             end: 100
                             }
                         ],
-                        graphic: {
-                            elements: [
-                            {
-                                type: 'text',
-                                right: 'center',
-                                // right: '48%',
-                                style: { //z轴样式
-                                text: stock_name,  //z轴文本
-                                font: 'bolder 15px monospace',
-                                fill: 'rgba(100, 100, 100, 0.75)'
-                                },
-                                z: 100
-                            }
-                            ]
-                        },
+                        // graphic: {
+                        //     elements: [
+                        //     {
+                        //         type: 'text',
+                        //         right: 'center',
+                        //         // right: '48%',
+                        //         style: { //z轴样式
+                        //         text: stock_name,  //z轴文本
+                        //         font: 'bolder 15px monospace',
+                        //         fill: 'rgba(100, 100, 100, 0.75)'
+                        //         },
+                        //         z: 100
+                        //     }
+                        //     ]
+                        // },
                         series: [
                             {
                             name: 'Dow-Jones index',
                             type: 'candlestick',
                             data: data.values,
                             itemStyle: {
-                                color: upColor,
-                                color0: downColor,
+                                color: downColor,
+                                color0: upColor,
                                 borderColor: undefined,
                                 borderColor0: undefined
                             },
@@ -856,8 +1036,7 @@
                     }),
                     true);
                 });
-           
-                this.candlestickChart.dispatchAction({
+                candlestickChart.dispatchAction({
                     type: 'brush',
                     areas: [
                     {
@@ -867,7 +1046,6 @@
                     }
                     ]
                 });
-                option && this.candlestickChart.setOption(option);
             }
         }
 }
