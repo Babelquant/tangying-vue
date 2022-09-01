@@ -613,21 +613,36 @@
 
                     //首板
                     for  (let i = 0; i < date_set.length; ++i) {
-                        data_0_1.push(data.slice(1).filter(function (d) {  
+                        let d_filter = data.slice(1).filter(function (d) {  
                             return d[2] === date_set[i] && d[0] == '首板';
-                        })[0][1]);
+                        });
+                        if(d_filter.length == 0){
+                            data_0_1.push(0);
+                        }else{
+                            data_0_1.push(d_filter[0][1]);
+                        }
                     };
                     //1进2
                     for  (let i = 0; i < date_set.length; ++i) {
-                        data_1_2.push(data.slice(1).filter(function (d) {  
+                        let d_filter = data.slice(1).filter(function (d) {  
                             return d[2] === date_set[i] && d[0] == '2天2板';
-                        })[0][1]);
+                        });
+                        if(d_filter.length == 0){
+                            data_1_2.push(0);
+                        }else{
+                            data_1_2.push(d_filter[0][1]);
+                        }
                     };
                     //2进3
                     for  (let i = 0; i < date_set.length; ++i) {
-                        data_2_3.push(data.slice(1).filter(function (d) {  
+                        let d_filter = data.slice(1).filter(function (d) {  
                             return d[2] === date_set[i] && d[0] == '3天3板';
-                        })[0][1]);
+                        });
+                        if(d_filter.length == 0){
+                            data_2_3.push(0);
+                        }else{
+                            data_2_3.push(d_filter[0][1]);
+                        }
                     };
                     //1进2成功率
                     for (let i = 1; i < data_1_2.length; ++i) {  
