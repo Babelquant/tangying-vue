@@ -7,7 +7,8 @@
                 <div id="concept-rank" style="height:280px;"></div>
                 <div style="height:190px;">
                     <el-table
-                        :data="limituptableData"
+                        :data="limituptableData.filter(data => !limituptable_search || data.High_days.toLowerCase().includes(limituptable_search.toLowerCase()))"
+                        @row-click="lookCandlestick"
                         height= 190
                         style="width: 100%">
                         <el-table-column
@@ -30,20 +31,29 @@
                         label="涨停原因"
                         width="130">
                         </el-table-column>
-                        <el-table-column
+                        <!-- <el-table-column
                         prop="Limitup_type"
                         label="涨停形态"
                         width="80">
-                        </el-table-column>
+                        </el-table-column> -->
                         <el-table-column
                         prop="High_days"
                         label="几天几板"
                         width="80">
                         </el-table-column>
-                        <el-table-column
+                        <!-- <el-table-column
                         prop="Change_rate"
                         label="换手率"
                         width="70">
+                        </el-table-column> -->
+                        <el-table-column 
+                        align="right">
+                        <template slot="header" slot-scope="scope">
+                            <el-input
+                            v-model="limituptable_search"
+                            size="mini"
+                            placeholder="几天几板"/>
+                        </template>
                         </el-table-column>
                     </el-table>
                 </div>
@@ -220,6 +230,7 @@
                 allconcepts: [],
                 stretagyData: [],
                 search_stock: '',
+                limituptable_search: '',
                 search_concepts: null,
                 hotRankChart: null,
                 timer: null,
@@ -295,6 +306,12 @@
                     this.allconcepts = res.data;
                 });
             },
+            lookCandlestick(row) {
+                // console.log(row);
+                let item = {code: row.Code,value: row.Name};
+                this.stockSelect(item);
+            },
+            //股票k线图弹框
             stockSelect(item) {
                 // console.log('select:',item.value);
                 this.$nextTick(() => {                       // Can't get dom width or height报错解决方法
@@ -661,22 +678,22 @@
                                 let rise_stocks = splitArray(data_1_2.value[5],5);
                                 let out_stocks = splitArray(data_1_2.value[7],5);
 
-                                let head_1_2 = data_1_2.marker + data_1_2.seriesName + '&nbsp&nbsp&nbsp&nbsp 成功率：' + data_1_2.value[9] + '%<br/>晋级' + data_1_2.value[2] + '支：';
+                                let head_1_2 = data_1_2.marker + data_1_2.seriesName + '&nbsp&nbsp&nbsp&nbsp 成功率：' + data_1_2.value[9] + '%<br/><span style="font-weight:bold">晋级' + data_1_2.value[2] + '支：</span>';
                                 for (let i = 0; i < rise_stocks.length; ++i) {
                                     head_1_2 += rise_stocks[i].join(' ') + '<br/>';
                                 };
-                                head_1_2 += '淘汰' + data_1_2.value[7].length + '支：';
+                                head_1_2 += '<span style="font-weight:bold">淘汰' + data_1_2.value[7].length + '支：</span>';
                                 for (let i = 0; i < out_stocks.length; ++i) {
                                     head_1_2 += out_stocks[i].join(' ') + '<br/>';
                                 };
                                   
                                 rise_stocks = splitArray(data_2_3.value[6],5);
                                 out_stocks = splitArray(data_2_3.value[8],5);
-                                let head_2_3 = data_2_3.marker + data_2_3.seriesName + '&nbsp&nbsp&nbsp&nbsp 成功率:' + data_2_3.value[10] + '%<br/>晋级' + data_2_3.value[3] + '支：';
+                                let head_2_3 = data_2_3.marker + data_2_3.seriesName + '&nbsp&nbsp&nbsp&nbsp 成功率:' + data_2_3.value[10] + '%<br/><span style="font-weight:bold">晋级' + data_2_3.value[3] + '支：</span>';
                                 for (let i = 0; i < rise_stocks.length; ++i) {
                                     head_2_3 += rise_stocks[i].join(' ') + '<br/>';
                                 };
-                                head_2_3 += '淘汰' + data_1_2.value[7].length + '支：';
+                                head_2_3 += '<span style="font-weight:bold">淘汰' + data_1_2.value[8].length + '支：</span>';
                                 for (let i = 0; i < out_stocks.length; ++i) {
                                     head_2_3 += out_stocks[i].join(' ') + '<br/>';
                                 };
