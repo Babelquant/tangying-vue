@@ -595,12 +595,7 @@
                 var chartDom = document.getElementById('limitupStatistic');
                 var myChart = this.$echarts.init(chartDom);
                 var option;
-                var data_0_1 = [];
-                var data_1_2 = [];
-                var data_2_3 = [];
-                var success_1_2 = [];
-                var success_2_3 = [];
-
+                var data_set = [];
 
                 this.axios.get('/tangying/api/v1/data/limitup_statistic/').then( res => {
                     const data = res.data;
@@ -611,153 +606,187 @@
                     let date_set = [...new Set(dates)];
                     // console.log('dates:',date_set);
 
-                    //首板
+                    //格式化数据集 [日期 首板数 2天2板数 3天3板数 首板票 2天2板票 3天3板票 1进2淘汰票 2进3淘汰票 1进2成功率 2进3成功率]
                     for  (let i = 0; i < date_set.length; ++i) {
-                        let d_filter = data.slice(1).filter(function (d) {  
-                            return d[2] === date_set[i] && d[0] == '首板';
-                        });
-                        if(d_filter.length == 0){
-                            data_0_1.push(0);
-                        }else{
-                            data_0_1.push(d_filter[0][1]);
-                        }
-                    };
-                    //1进2
-                    for  (let i = 0; i < date_set.length; ++i) {
-                        let d_filter = data.slice(1).filter(function (d) {  
-                            return d[2] === date_set[i] && d[0] == '2天2板';
-                        });
-                        if(d_filter.length == 0){
-                            data_1_2.push(0);
-                        }else{
-                            data_1_2.push(d_filter[0][1]);
-                        }
-                    };
-                    //2进3
-                    for  (let i = 0; i < date_set.length; ++i) {
-                        let d_filter = data.slice(1).filter(function (d) {  
-                            return d[2] === date_set[i] && d[0] == '3天3板';
-                        });
-                        if(d_filter.length == 0){
-                            data_2_3.push(0);
-                        }else{
-                            data_2_3.push(d_filter[0][1]);
-                        }
-                    };
-                    //1进2成功率
-                    for (let i = 1; i < data_1_2.length; ++i) {  
-                        success_1_2[i] = (data_1_2[i]/data_0_1[i-1]*100).toFixed(1)
-                    }
-                    //2进3成功率
-                    for (let i = 1; i < data_2_3.length; ++i) {  
-                        success_2_3[i] = (data_2_3[i]/data_1_2[i-1]*100).toFixed(1)
-                    }
+                        let filter_stocks;
 
-                    // console.log('data1:',data_1_2)
+                        filter_stocks = data.slice(1).filter(function (d) {return d[2] === date_set[i] && d[0] == '首板'});
+                        let stocks_1 = filter_stocks.length>0?filter_stocks[0][1].split(','):[];
+                        filter_stocks = data.slice(1).filter(function (d) {return d[2] === date_set[i] && d[0] == '2天2板'});
+                        let stocks_2 = filter_stocks.length>0?filter_stocks[0][1].split(','):[];
+                        filter_stocks = data.slice(1).filter(function (d) {return d[2] === date_set[i] && d[0] == '3天3板'});
+                        let stocks_3 = filter_stocks.length>0?filter_stocks[0][1].split(','):[];
+                        data_set.push([
+                            date_set[i],
+                            stocks_1.length,
+                            stocks_2.length,
+                            stocks_3.length,
+                            stocks_1,
+                            stocks_2,
+                            stocks_3
+                       ])
+                    };
+                    //筛选淘汰票
+                    data_set[0].push([],[]);
+                    for  (let i = 1; i < data_set.length; ++i) {
+                        data_set[i].push(data_set[i-1][4].filter(item=>{return !data_set[i][5].includes(item)}));
+                        data_set[i].push(data_set[i-1][5].filter(item=>{return !data_set[i][6].includes(item)}));
+                    };
+                    //计算成功率
+                    data_set[0].push(NaN,NaN);
+                    for  (let i = 1; i < data_set.length; ++i) {
+                        data_set[i].push((data_set[i][2]/data_set[i-1][1]*100).toFixed(1));
+                        data_set[i].push((data_set[i][3]/data_set[i-1][2]*100).toFixed(1));
+                    };
+                    // console.log('data_set:',data_set)
+
+                    function splitArray(arr, len){
+                        let index = 0;
+                        let new_arr = [];
+                        while(index < arr.length){
+                            new_arr.push(arr.slice(index, index+=len))
+                        }
+                        return new_arr
+                    };
                     option = {
-                    tooltip: {
-                        trigger: 'axis',
-                        axisPointer: {
-                        type: 'cross',
-                        crossStyle: {
-                            color: '#999'
-                        }
-                        }
-                    },
-                    toolbox: {
-                        feature: {
-                        dataView: { show: true, readOnly: false },
-                        magicType: { show: true, type: ['line', 'bar'] },
-                        restore: { show: true },
-                        saveAsImage: { show: true }
-                        }
-                    },
-                    legend: {
-                        data: ['1-2', '2-3', '1-2成功率', '2-3成功率']
-                    },
-                    xAxis: [
-                        {
-                        type: 'category',
-                        data: date_set,
-                        axisPointer: {
-                            type: 'shadow'
+                        dataset: {
+                            source: data_set
                         },
-                        axisLabel: {
-                            rotate: -45, //刻度标签倾斜
-                            // formatter: function (value, index) {
-                            //     return value + 'kg';
-                            // }
-                        }
-                        }
-                    ],
-                    yAxis: [
-                        {
-                        type: 'value',
-                        name: '数量',
-                        min: 0,
-                        max: function(value) {
-                            return Math.ceil(value.max)
-                        },
-                        interval: 20,
-                        axisLabel: {
-                            formatter: '{value} 支'
-                        }
-                        },
-                        {
-                        type: 'value',
-                        name: '成功率',
-                        min: 0,
-                        max: 100,
-                        interval: 20,
-                        axisLabel: {
-                            formatter: '{value} %'
-                        }
-                        }
-                    ],
-                    series: [
-                        {
-                        name: '1-2',
-                        type: 'bar',
                         tooltip: {
-                            valueFormatter: function (value) {
-                            return value + ' 支';
+                            trigger: 'axis',
+                            formatter: function(params) {  //series.encode.tooltip无法实现显示股票名称
+                                // console.log('params:',params);
+                                let data_1_2 = params[0];
+                                let data_2_3 = params[1];
+                                let rise_stocks = splitArray(data_1_2.value[5],5);
+                                let out_stocks = splitArray(data_1_2.value[7],5);
+
+                                let head_1_2 = data_1_2.marker + data_1_2.seriesName + '&nbsp&nbsp&nbsp&nbsp 成功率：' + data_1_2.value[9] + '%<br/>晋级' + data_1_2.value[2] + '支：';
+                                for (let i = 0; i < rise_stocks.length; ++i) {
+                                    head_1_2 += rise_stocks[i].join(' ') + '<br/>';
+                                };
+                                head_1_2 += '淘汰' + data_1_2.value[7].length + '支：';
+                                for (let i = 0; i < out_stocks.length; ++i) {
+                                    head_1_2 += out_stocks[i].join(' ') + '<br/>';
+                                };
+                                  
+                                rise_stocks = splitArray(data_2_3.value[6],5);
+                                out_stocks = splitArray(data_2_3.value[8],5);
+                                let head_2_3 = data_2_3.marker + data_2_3.seriesName + '&nbsp&nbsp&nbsp&nbsp 成功率:' + data_2_3.value[10] + '%<br/>晋级' + data_2_3.value[3] + '支：';
+                                for (let i = 0; i < rise_stocks.length; ++i) {
+                                    head_2_3 += rise_stocks[i].join(' ') + '<br/>';
+                                };
+                                head_2_3 += '淘汰' + data_1_2.value[7].length + '支：';
+                                for (let i = 0; i < out_stocks.length; ++i) {
+                                    head_2_3 += out_stocks[i].join(' ') + '<br/>';
+                                };
+
+                                return head_1_2 + '<br/>' + head_2_3
+ 
+                                // params.forEach((item) => {
+                                //     let tooltip_style = item.marker + item.seriesName;
+                                // });
+                            },
+                            axisPointer: {
+                                type: 'cross',
+                                crossStyle: {
+                                    color: '#999'
+                                }
                             }
                         },
-                        data: data_1_2
-                        },
-                        {
-                        name: '2-3',
-                        type: 'bar',
-                        tooltip: {
-                            valueFormatter: function (value) {
-                            return value + ' 支';
+                        toolbox: {
+                            feature: {
+                            dataView: { show: true, readOnly: false },
+                            magicType: { show: true, type: ['line', 'bar'] },
+                            restore: { show: true },
+                            saveAsImage: { show: true }
                             }
                         },
-                        data: data_2_3
+                        legend: {   //图例的数据数组。数组项通常为一个字符串，每一项代表一个系列的 name
+                            data: ['1进2', '2进3', '1进2成功率', '2进3成功率']
+                            // data: ['日期', '首板', '1进2', '2进3', '1进2成功率', '2进3成功率']
                         },
-                        {
-                        name: '1-2成功率',
-                        type: 'line',
-                        yAxisIndex: 1,
-                        tooltip: {
-                            valueFormatter: function (value) {
-                            return value + ' %';
+                        xAxis: [
+                            {
+                            type: 'category',
+                            // data: date_set,
+                            axisPointer: {
+                                type: 'shadow'
+                            },
+                            axisLabel: {
+                                rotate: -45, //刻度标签倾斜
+                                // formatter: function (value, index) {
+                                //     return value + 'kg';
+                                // }
                             }
-                        },
-                        data: success_1_2
-                        },
-                        {
-                        name: '2-3成功率',
-                        type: 'line',
-                        yAxisIndex: 1,
-                        tooltip: {
-                            valueFormatter: function (value) {
-                            return value + ' %';
                             }
-                        },
-                        data: success_2_3
-                        }
-                    ]
+                        ],
+                        yAxis: [
+                            {
+                            type: 'value',
+                            name: '数量/支',
+                            min: 0,
+                            max: function(value) {
+                                return value.max;
+                            },
+                            interval: 20,
+                            axisLabel: {
+                                formatter: '{value}'
+                            }
+                            },
+                            {
+                            type: 'value',
+                            name: '成功率',
+                            min: 0,
+                            max: 100,
+                            interval: 20,
+                            axisLabel: {
+                                formatter: '{value}%'
+                            }
+                            }
+                        ],
+                        series: [
+                            {
+                            name: '1进2',
+                            type: 'bar',
+                            barMaxWidth: 15,
+                            encode: {
+                                x: 0, 
+                                y: 2,             
+                                tooltip: 2
+                            }
+                            },
+                            {
+                            name: '2进3',
+                            type: 'bar',
+                            barMaxWidth: 15,
+                            encode: {
+                                x: 0, 
+                                y: 3,             
+                                tooltip: 3
+                            }
+                            },
+                            {
+                            name: '1进2成功率',
+                            type: 'line',
+                            yAxisIndex: 1,  //在单个图表实例中存在多个y轴的时候有用
+                            encode: {
+                                x: 0, 
+                                y: 9,    
+                                tooltip: 9      
+                            }
+                            },
+                            {
+                            name: '2进3成功率',
+                            type: 'line',
+                            yAxisIndex: 1,
+                            encode: {
+                                x: 0, 
+                                y: 10,   
+                                tooltip: 10
+                            }
+                            }
+                        ]
                     };
                     myChart.setOption(option);
                 })
@@ -831,26 +860,26 @@
                             left: 'center',
                             data: ['Dow-Jones index', 'MA5', 'MA10', 'MA20', 'MA30']
                         },
-                        // tooltip: {
-                        //   trigger: 'axis',
-                        //   axisPointer: {
-                        //     type: 'cross'
-                        //   },
-                        //   borderWidth: 1,
-                        //   borderColor: '#ccc',
-                        //   padding: 10,
-                        //   textStyle: {
-                        //     color: '#000'
-                        //   },
-                        //   position: function (pos, params, el, elRect, size) {
-                        //     const obj = {
-                        //       top: 10
-                        //     };
-                        //     obj[['left', 'right'][+(pos[0] < size.viewSize[0] / 2)]] = 30;
-                        //     return obj;
-                        //   }
-                        //   // extraCssText: 'width: 170px'
-                        // },
+                        tooltip: {
+                          trigger: 'axis',
+                          axisPointer: {
+                            type: 'cross'
+                          },
+                          borderWidth: 1,
+                          borderColor: '#ccc',
+                          padding: 10,
+                          textStyle: {
+                            color: '#000'
+                          },
+                          position: function (pos, params, el, elRect, size) {
+                            const obj = {
+                              top: 10
+                            };
+                            obj[['left', 'right'][+(pos[0] < size.viewSize[0] / 2)]] = 30;
+                            return obj;
+                          }
+                          // extraCssText: 'width: 170px'
+                        },
                         axisPointer: {
                             link: [
                             {
@@ -861,16 +890,16 @@
                             backgroundColor: '#777'
                             }
                         },
-                        toolbox: {
-                            feature: {
-                            dataZoom: {
-                                yAxisIndex: false
-                            },
-                            brush: {
-                                type: ['lineX', 'clear']
-                            }
-                            }
-                        },
+                        // toolbox: {
+                        //     feature: {
+                        //     dataZoom: {
+                        //         yAxisIndex: false
+                        //     },
+                        //     brush: {
+                        //         type: ['lineX', 'clear']
+                        //     }
+                        //     }
+                        // },
                         brush: {
                             xAxisIndex: 'all',
                             brushLink: 'all',
@@ -965,21 +994,6 @@
                             end: 100
                             }
                         ],
-                        // graphic: {
-                        //     elements: [
-                        //     {
-                        //         type: 'text',
-                        //         right: 'center',
-                        //         // right: '48%',
-                        //         style: { //z轴样式
-                        //         text: stock_name,  //z轴文本
-                        //         font: 'bolder 15px monospace',
-                        //         fill: 'rgba(100, 100, 100, 0.75)'
-                        //         },
-                        //         z: 100
-                        //     }
-                        //     ]
-                        // },
                         series: [
                             {
                             name: 'Dow-Jones index',
@@ -991,18 +1005,18 @@
                                 borderColor: undefined,
                                 borderColor0: undefined
                             },
-                            // tooltip: {
-                            //     formatter: function (param) {
-                            //     param = param[0];
-                            //     return [
-                            //         'Date: ' + param.name + '<hr size=1 style="margin: 3px 0">',
-                            //         'Open: ' + param.data[0] + '<br/>',
-                            //         'Close: ' + param.data[1] + '<br/>',
-                            //         'Lowest: ' + param.data[2] + '<br/>',
-                            //         'Highest: ' + param.data[3] + '<br/>'
-                            //     ].join('');
-                            //     }
-                            // }
+                            tooltip: {
+                                formatter: function (param) {
+                                param = param[0];
+                                return [
+                                    'Date: ' + param.name + '<hr size=1 style="margin: 3px 0">',
+                                    'Open: ' + param.data[0] + '<br/>',
+                                    'Close: ' + param.data[1] + '<br/>',
+                                    'Lowest: ' + param.data[2] + '<br/>',
+                                    'Highest: ' + param.data[3] + '<br/>'
+                                ].join('');
+                                }
+                            }
                             },
                             {
                             name: 'MA5',
