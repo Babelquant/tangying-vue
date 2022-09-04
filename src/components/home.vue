@@ -315,16 +315,19 @@
                 let item = {code: row.Code,value: row.Name,latest: row.Latest};
                 this.stockSelect(item);
             },
-            test() {
-                console.log('yes');
-            },
             //股票k线图弹框
             async stockSelect(item) {
                 // console.log('select:',item.value);
+                let head;
+                let res;
+
+                if (!item.hasOwnProperty('latest')) {
+                    res = await this.axios.get('/tangying/api/v1/data/latest_price/'+item.code+'/');
+                    item['latest'] = res.data[0].收盘;
+                };
                 //获取排名情况
                 //axios实现同步请求
-                let head;
-                let res = await this.axios.get('/tangying/api/v1/data/stock_latest_rank/'+item.code+'/');
+                res = await this.axios.get('/tangying/api/v1/data/stock_latest_rank/'+item.code+'/');
                 let rank_info = res.data;
                 // console.log('rank:',rank_info)
                 this.$nextTick(() => {                       // Can't get dom width or height报错解决方法
@@ -333,8 +336,8 @@
                 let rank_cha = rank_info.rankChange;
                 let change = rank_cha>0?'<i class="el-icon-top" style="font-size:smaller;color:red">'+rank_cha+'</i>':'<i class="el-icon-bottom" style="font-size:smaller;color:green">'+rank_cha+'</i>';
                 head = [
-                    '<span style="font-size:larger;margin-right:5px;">'+item.value+'</span>',
-                    '<span style="font-size:larger;margin-right:15px;">'+item.latest+'</span>',
+                    '<span style="font-size:larger;margin-right:10px;">'+item.value+'</span>',
+                    '<span style="font-family:Fantasy;font-size:larger;margin-right:15px;">'+item.latest+'</span>',
                     '<span style="font-size:smaller;margin-right:5px;">排名：'+rank_info.rank+'</span>',
                     change
                 ].join('');
