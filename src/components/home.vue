@@ -26,11 +26,11 @@
                         label="流通值/亿"
                         width="80">
                         </el-table-column>
-                        <el-table-column
+                        <!-- <el-table-column
                         prop="_Reason_type"
                         label="涨停原因"
                         width="130">
-                        </el-table-column>
+                        </el-table-column> -->
                         <!-- <el-table-column
                         prop="Limitup_type"
                         label="涨停形态"
@@ -46,14 +46,17 @@
                         label="换手率"
                         width="70">
                         </el-table-column> -->
-                        <el-table-column 
-                        align="right">
+                        <el-table-column
+                        width="250">
                         <template slot="header" slot-scope="scope">
                             <el-input
                             v-model="limituptable_search"
                             size="mini"
                             placeholder="几天几板"/>
                         </template>
+                            <template slot-scope="scope">
+                                <span>{{ scope.row._Reason_type }}</span>
+                            </template>
                         </el-table-column>
                     </el-table>
                 </div>
@@ -308,18 +311,37 @@
             },
             lookCandlestick(row) {
                 // console.log(row);
-                let item = {code: row.Code,value: row.Name};
+                // console.log(column);
+                let item = {code: row.Code,value: row.Name,latest: row.Latest};
                 this.stockSelect(item);
             },
+            test() {
+                console.log('yes');
+            },
             //股票k线图弹框
-            stockSelect(item) {
+            async stockSelect(item) {
                 // console.log('select:',item.value);
+                //获取排名情况
+                //axios实现同步请求
+                let head;
+                let res = await this.axios.get('/tangying/api/v1/data/stock_latest_rank/'+item.code+'/');
+                let rank_info = res.data;
+                // console.log('rank:',rank_info)
                 this.$nextTick(() => {                       // Can't get dom width or height报错解决方法
                     this.setCandlestickChart(item.code);
                 });
+                let rank_cha = rank_info.rankChange;
+                let change = rank_cha>0?'<i class="el-icon-top" style="font-size:smaller;color:red">'+rank_cha+'</i>':'<i class="el-icon-bottom" style="font-size:smaller;color:green">'+rank_cha+'</i>';
+                head = [
+                    '<span style="font-size:larger;margin-right:5px;">'+item.value+'</span>',
+                    '<span style="font-size:larger;margin-right:15px;">'+item.latest+'</span>',
+                    '<span style="font-size:smaller;margin-right:5px;">排名：'+rank_info.rank+'</span>',
+                    change
+                ].join('');
+                // let head = [item.value,head_style];
                 layer.open({
                     type: 1,
-                    title: item.value,
+                    title: head,
                     skin: 'layui-layer-rim', //加上边框
                     area: ['60%', '80%'], //宽高 相对全屏的比例
                     content: $('#candlestick'),
@@ -468,7 +490,7 @@
                 }
                 },
                 yAxis: {
-                name: '人气值'
+                name: '人气值/万'
                 },
                 grid: {
                     left: 60,
@@ -831,7 +853,7 @@
                     
                     return [year, month, day].join('-');
                 };
-                //分离数据
+                //分离数据,衍生新数据
                 function splitData(rawData) {
                     // console.log("type:",typeof(rawData))
                     let categoryData = [];
@@ -839,9 +861,9 @@
                     let volumes = [];
                     for (let i = 0; i < rawData.length; i++) {
                         // categoryData.push(formatDate(rawData[i].splice(0, 1)[0]));
-                        categoryData.push(rawData[i].splice(0, 1)[0]);
-                        values.push(rawData[i]);
-                        volumes.push([i, rawData[i][4], rawData[i][0] > rawData[i][1] ? -1 : 1]);
+                        categoryData.push(rawData[i].splice(0, 1)[0]); // splice删除（插入）元素，会改变原数组！从index=0开始删除1个元素，返回值为删除掉的元素所组成的数组
+                        values.push(rawData[i]); //原数组删除index=0的元素后的数组
+                        volumes.push([i, rawData[i][4], rawData[i][0] > rawData[i][1] ? -1 : 1]); // [index,成交量,涨跌flag]
                     }
                     return {
                         categoryData: categoryData,
@@ -875,7 +897,7 @@
                         legend: {
                             bottom: 10,
                             left: 'center',
-                            data: ['Dow-Jones index', 'MA5', 'MA10', 'MA20', 'MA30']
+                            data: ['Dow-Jones index', 'MA5', 'MA10', 'MA20', 'MA60']
                         },
                         tooltip: {
                           trigger: 'axis',
@@ -885,6 +907,7 @@
                           borderWidth: 1,
                           borderColor: '#ccc',
                           padding: 10,
+                          backgroundColor: 'rgba(0,0,0,0.2)',
                           textStyle: {
                             color: '#000'
                           },
@@ -894,8 +917,22 @@
                             };
                             obj[['left', 'right'][+(pos[0] < size.viewSize[0] / 2)]] = 30;
                             return obj;
-                          }
-                          // extraCssText: 'width: 170px'
+                          },
+                          formatter: function (param) {
+                            param = param[0];
+                            // console.log(param);
+                            return [
+                                param.name + '<hr size=1 style="margin: 3px 0">',
+                                '开盘: ' + param.data[1] + '<br/>',
+                                '收盘: ' + param.data[2] + '<br/>',
+                                '最高: ' + param.data[3] + '<br/>',
+                                '最低: ' + param.data[4] + '<br/>',
+                                '成交量: ' + (param.data[5]/1000).toFixed(1) + '万手<br/>',
+                                '涨跌幅: ' + param.data[8] + '%<br/>',
+                                '振幅: ' + param.data[7] + '%'
+                            ].join('');
+                          },
+                        //   extraCssText: 'width: 170px'
                         },
                         axisPointer: {
                             link: [
@@ -917,13 +954,13 @@
                         //     }
                         //     }
                         // },
-                        brush: {
-                            xAxisIndex: 'all',
-                            brushLink: 'all',
-                            outOfBrush: {
-                            colorAlpha: 0.1
-                            }
-                        },
+                        // brush: {
+                        //     xAxisIndex: 'all',
+                        //     brushLink: 'all',
+                        //     outOfBrush: {
+                        //     colorAlpha: 0.1
+                        //     }
+                        // },
                         visualMap: {
                             show: false,
                             seriesIndex: 5,
@@ -1021,18 +1058,6 @@
                                 color0: upColor,
                                 borderColor: undefined,
                                 borderColor0: undefined
-                            },
-                            tooltip: {
-                                formatter: function (param) {
-                                param = param[0];
-                                return [
-                                    'Date: ' + param.name + '<hr size=1 style="margin: 3px 0">',
-                                    'Open: ' + param.data[0] + '<br/>',
-                                    'Close: ' + param.data[1] + '<br/>',
-                                    'Lowest: ' + param.data[2] + '<br/>',
-                                    'Highest: ' + param.data[3] + '<br/>'
-                                ].join('');
-                                }
                             }
                             },
                             {
@@ -1040,6 +1065,7 @@
                             type: 'line',
                             data: calculateMA(5, data),
                             smooth: true,
+                            showSymbol: false,
                             lineStyle: {
                                 opacity: 0.5
                             }
@@ -1049,6 +1075,7 @@
                             type: 'line',
                             data: calculateMA(10, data),
                             smooth: true,
+                            symbol: 'none',
                             lineStyle: {
                                 opacity: 0.5
                             }
@@ -1058,15 +1085,17 @@
                             type: 'line',
                             data: calculateMA(20, data),
                             smooth: true,
+                            symbol: 'none',
                             lineStyle: {
                                 opacity: 0.5
                             }
                             },
                             {
-                            name: 'MA30',
+                            name: 'MA60',
                             type: 'line',
-                            data: calculateMA(30, data),
+                            data: calculateMA(60, data),
                             smooth: true,
+                            symbol: 'none',
                             lineStyle: {
                                 opacity: 0.5
                             }
@@ -1082,16 +1111,16 @@
                     }),
                     true);
                 });
-                candlestickChart.dispatchAction({
-                    type: 'brush',
-                    areas: [
-                    {
-                        brushType: 'lineX',
-                        coordRange: ['2022-07-02', '2022-07-20'],
-                        xAxisIndex: 0
-                    }
-                    ]
-                });
+                // candlestickChart.dispatchAction({
+                //     type: 'brush',
+                //     areas: [
+                //     {
+                //         brushType: 'lineX',
+                //         coordRange: ['2022-07-02', '2022-07-20'],
+                //         xAxisIndex: 0
+                //     }
+                //     ]
+                // });
             }
         }
 }
