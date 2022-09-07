@@ -73,7 +73,7 @@ import { onMounted } from 'vue'
 
             //登录表单提交事件
             form.on('submit(formLoginDemo)', function(data) {
-                console.log(data.field);
+                // console.log(data.field);
                 if(data.field.username == "admin" && data.field.passwd == "888888") {
                     layer.msg('登录成功');
                     // console.log(the.$router);
