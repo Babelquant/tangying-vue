@@ -139,29 +139,40 @@
                 <el-table
                     v-loading="concept_loading"
                     :data="conceptstretagytableData"
+                    @row-click="lookCandlestick"
                     :default-sort = "{prop: 'concept_num', order: 'descending'}"
                     height= 400
                     style="width: 100%">
                     <el-table-column
-                    prop="name"
+                    prop="Name"
                     label="股票名称"
                     width="85">
                     </el-table-column>
                     <el-table-column
-                    prop="concept"
-                    label="概念叠加"
-                    width="130">
+                    prop="Latest"
+                    label="最新价"
+                    width="70">
                     </el-table-column>
                     <el-table-column
-                    prop="last_price"
-                    label="最新价"
+                    prop="Currency_value"
+                    label="流通盘/亿"
+                    width="90">
+                    </el-table-column>
+                    <el-table-column
+                    prop="Change_percent"
+                    label="涨跌幅"
                     width="80">
                     </el-table-column>
                     <el-table-column
-                    prop="increase"
-                    label="近1周涨幅"
+                    prop="Rank"
+                    label="排名"
                     sortable
-                    width="150">
+                    width="80">
+                    </el-table-column>
+                    <el-table-column
+                    prop="Concept"
+                    label="概念叠加"
+                    width="130">
                     </el-table-column>
                 </el-table>
                 </div>

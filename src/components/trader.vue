@@ -49,6 +49,11 @@
                 boardConceptTable: []
             };
         },
+        beforeDestroy() {
+            if(this.timer) {
+                clearInterval(this.timer);
+            }
+        },
         mounted() {
             //1s更新一次板块概念
             this.timer = setInterval(() => {
