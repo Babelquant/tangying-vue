@@ -3,7 +3,8 @@ import Router from 'vue-router'
 
 import Login from './components/login.vue'
 import Home from './components/home.vue'
-import General from './components/general.vue'
+import Review from './components/review.vue'
+import Board from './components/board.vue'
 import Trader from './components/trader.vue'
 import Test from './components/test.vue'
 
@@ -14,8 +15,9 @@ const routes = [
   { path: '/', redirect: '/login' },
   { path: '/home', 
     component: Home,
-    redirect: '/general', 
-    children:[{path: '/general', component: General},
+    redirect: '/review', 
+    children:[{path: '/review', component: Review},
+      { path: '/board', component: Board },
       { path: '/trader', component: Trader }] 
   },
   { path: '/test', component: Test }

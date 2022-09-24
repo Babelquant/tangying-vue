@@ -2,15 +2,15 @@
     <el-container>
         <el-header>
             <el-menu
-            default-active="/general"
+            default-active="/review"
             router
             class="el-menu-demo"
             mode="horizontal"
-            @select="headSelect"
             background-color="#545c64"
             text-color="#fff"
             active-text-color="#ffd04b">
-            <el-menu-item index="/general">盘面</el-menu-item>
+            <el-menu-item index="/review">复盘</el-menu-item>
+            <el-menu-item index="/board">盘面</el-menu-item>
             <el-menu-item index="/trader">实盘</el-menu-item>
             </el-menu>
         </el-header>
@@ -27,9 +27,7 @@
       };
     },
     methods: {
-        headSelect(key, keyPath) {
-        // console.log(key, keyPath);
-      }
+  
     }
   }
 </script>
@@ -48,8 +46,8 @@
         line-height: 100%;
     }
 
-    body > .el-container {
+    /* body > .el-container {
         margin-bottom: 40px;
-    }
+    } */
 </style>
 

@@ -1,15 +1,19 @@
 <template>
-    <div class="flex column">
-        <!-- 第一行 -->
-        <div class="flex flex-centor div-height">
-            <div id="hot-stocks-chart" class="basic-charts"></div>
-            <div class="basic-charts flex column">
-                <div id="concept-rank" style="height:280px;"></div>
-                <div style="height:190px;">
+    <div class="flex flex-center">
+        <!-- 左图 -->
+        <div class="left-charts flex column">
+            <div id="concept-rank" style="height:300px;"></div>
+            <div id="limitupStatistic" style="height:450px;padding-top: 50px;"></div>
+        </div>
+        <!-- 右图 -->
+        <div class="right-charts flex column">
+            <div class="flex" style="height:300px;">
+                <!-- 涨停池 -->
+                <div class="flex column" style="width: 570px;">
                     <el-table
                         :data="limituptableData.filter(data => !limituptable_search || data.High_days.toLowerCase().includes(limituptable_search.toLowerCase()))"
                         @row-click="lookCandlestick"
-                        height= 190
+                        height= 278
                         style="width: 100%">
                         <el-table-column
                         prop="Name"
@@ -59,8 +63,7 @@
                             </template>
                         </el-table-column>
                     </el-table>
-                </div>
-                <div class="flex:1">
+                    <div class="flex:1">
                     <div v-if="stretagyData.length != 0">
                         <vue-marquee style="height:22px;" direction="top" :duration=stretagyData.length*2000 :showProgress="false">
                             <vue-marquee-slide v-for="(item,index) in stretagyData" :key="index">
@@ -69,171 +72,132 @@
                         </vue-marquee>
                     </div>
                 </div>
-            </div>
-            <div class="basic-charts flex column">
-                <div style="height:35px;margin-left: 5px;">
-                    <el-autocomplete
-                        class="inline-input"
-                        v-model="search_stock"
-                        :fetch-suggestions="stockQuerySearch"
-                        placeholder="股票名/股票代码"
-                        size="small"
-                        :clearable="true"
-                        :maxlength="8"
-                        :trigger-on-focus="false"
-                        @select="stockSelect"
-                    ></el-autocomplete>
                 </div>
-                <div id="candlestick" style="display: none;width: 1050px; height:650px">
-                    <div id="candlestickMain" style="width: 1050px; height:650px"></div>
-                </div>
-                <div id="limitupStatistic" style="height:450px;"></div>
-            </div>
-        </div>
-        <!-- 第二行 -->
-        <div class="flex flex-centor div-height">
-            <div class="basic-charts">
-                <el-scrollbar style="height: 100%" wrap-style="overflow-x:hidden;">
-                    <el-timeline>
-                        <el-timeline-item 
-                        v-for="(activity, index) in activities"
-                        :key="index"
-                        :color="activity.color"
-                        placement="top"
-                        :timestamp="activity.datetime">
-                        <el-card>
-                            <p v-html="activity.content"></p>
-                        </el-card>
-                        </el-timeline-item>
-                    </el-timeline>
-                </el-scrollbar>
-            </div>
-            <div class="tow-row-charts flex column">
-                <div style="height:30px;margin-left: 2px;margin-bottom: 2px;">
-                    <span>
-                        <el-select 
-                        v-model="search_concepts" 
-                        clearable 
-                        placeholder="概念"
-                        multiple
-                        collapse-tags
-                        filterable
-                        size="mini">
-                            <el-option
-                            v-for="item in allconcepts"
-                            :key="item.code"
-                            :label="item.name"
-                            :value="item.code">
-                            </el-option>
-                        </el-select>
-                    </span>
-                    <span style="margin-left:8px">
-                        <el-button 
-                        type="primary" 
-                        icon="el-icon-search" 
-                        size="mini"
-                        @click="searchConcepts">选股</el-button>
-                    </span>
-                </div>
-                <div style="height:350px;">
-                <el-table
-                    v-loading="concept_loading"
-                    :data="conceptstretagytableData"
-                    @row-click="lookCandlestick"
-                    :default-sort = "{prop: 'concept_num', order: 'descending'}"
-                    height= 400
-                    style="width: 100%">
-                    <el-table-column
-                    prop="Name"
-                    label="股票名称"
-                    width="85">
-                    </el-table-column>
-                    <el-table-column
-                    prop="Latest"
-                    label="最新价"
-                    width="70">
-                    </el-table-column>
-                    <el-table-column
-                    prop="Currency_value"
-                    label="流通盘/亿"
-                    width="90">
-                    </el-table-column>
-                    <el-table-column
-                    prop="Change_percent"
-                    label="涨跌幅"
-                    width="70">
-                    </el-table-column>
-                    <el-table-column
-                    prop="All_rank"
-                    label="市场排名"
-                    width="80">
-                    </el-table-column>
-                    <el-table-column
-                    prop="Ind_rank"
-                    label="行业排名"
-                    width="80">
-                    </el-table-column>
-                    <el-table-column
-                    prop="Concept"
-                    label="概念叠加"
-                    width="150">
-                    </el-table-column>
-                    <el-table-column
-                    prop="Related_concept"
-                    label="贴合概念"    
-                    width="280">
-                    </el-table-column>
-                </el-table>
+
+                <div class="flex column" style="width: 420px;">
+                    <div class="flex" style="height: 40%;">
+                        <div class="flex:1"  style="padding-right: 8px;">
+                            <el-card  
+                            :body-style="{padding: '5px'}" 
+                            style="width: 220px;height: 100%;">
+                                <div style="height: 20px;" class="text-center">涨停板</div>
+                                <div class="flex" style="height: 65px;">
+                                    <div class="text-center flex-row-half limitup-num-font" style="line-height: 65px;">{{todayLimitupNum}}</div>
+                                    <div class="text-center flex-row-half limitup-num-font" style="line-height: 65px;">{{yestodyLimitupNum}}</div>
+                                </div>
+                                <div class="flex" style="height: 20px;">
+                                    <div class="text-center flex-row-half">今日</div>
+                                    <div class="text-center flex-row-half">昨日</div>
+                                </div >
+                     
+                            </el-card>
+                        </div>
+
+                        <div class="flex column">
+                            <!-- 股票搜索框 -->
+                            <el-autocomplete
+                            style="margin-left: auto;" 
+                            class="inline-input"
+                            v-model="search_stock"
+                            :fetch-suggestions="stockQuerySearch"
+                            placeholder="股票名/股票代码"
+                            size="mini"
+                            :clearable="true"
+                            :maxlength="8"
+                            :trigger-on-focus="false"
+                            @select="stockSelect"
+                            ></el-autocomplete>
+                        </div>
+                    </div>
+                    
+                    <div class="flex:1"></div>
+
+                    <!-- 股票k线图弹框 -->
+                    <div id="candlestick" style="display: none;width: 1050px; height:650px">
+                        <div id="candlestickMain" style="width: 1050px; height:650px"></div>
+                    </div>
                 </div>
             </div>
-            <!-- <div class="basic-charts flex column">
-                <div style="height:30px;margin-left: 2px;margin-bottom: 2px;">
+
+            <div style="height:30px;padding-top: 50px;">
+                <!-- 概念选框 -->
+                <span>
+                    <el-select 
+                    v-model="search_concepts" 
+                    clearable 
+                    placeholder="概念"
+                    multiple
+                    collapse-tags
+                    filterable
+                    size="mini">
+                        <el-option
+                        v-for="item in allconcepts"
+                        :key="item.code"
+                        :label="item.name"
+                        :value="item.code">
+                        </el-option>
+                    </el-select>
+                </span>
+                <!-- 选股按钮 -->
+                <span style="margin-left:8px">
                     <el-button 
                     type="primary" 
-                    size="mini" 
-                    plain
-                    @click="searchSharpfall">快速下跌</el-button>
-                </div>
-                <div style="height:350px;">
-                <el-table
-                    v-loading="sharpfall_loading"
-                    :data="sharpfallstretagytableData"
-                    height= 400
-                    style="width: 100%">
-                    <el-table-column
-                    prop="股票"
-                    label="股票名称"
-                    width="85">
-                    </el-table-column>
-                    <el-table-column
-                    prop="行业"
-                    label="行业"
-                    width="100">
-                    </el-table-column>
-                    <el-table-column
-                    prop="最新价"
-                    label="最新价"
-                    width="80">
-                    </el-table-column>
-                    <el-table-column
-                    prop="5日跌幅"
-                    label="5日跌幅"
-                    sortable
-                    width="100">
-                    </el-table-column>
-                    <el-table-column
-                    prop="月内跌幅"
-                    label="月内跌幅"
-                    width="100">
-                    </el-table-column>
-                    <el-table-column
-                    prop="半年最高跌幅"
-                    label="半年最高跌幅"
-                    width="120">
-                    </el-table-column>
-                </el-table>
-                </div>
-            </div> -->
+                    icon="el-icon-search" 
+                    size="mini"
+                    @click="searchConcepts">选股</el-button>
+                </span>
+            </div>
+            <!-- 概念列表 -->
+            <div style="height:420px;">
+            <el-table
+                v-loading="concept_loading"
+                :data="conceptstretagytableData"
+                @row-click="lookCandlestick"
+                :default-sort = "{prop: 'concept_num', order: 'descending'}"
+                height= 400
+                style="width: 100%">
+                <el-table-column
+                prop="Name"
+                label="股票名称"
+                width="85">
+                </el-table-column>
+                <el-table-column
+                prop="Latest"
+                label="最新价"
+                width="70">
+                </el-table-column>
+                <el-table-column
+                prop="Currency_value"
+                label="流通盘/亿"
+                width="90">
+                </el-table-column>
+                <el-table-column
+                prop="Change_percent"
+                label="涨跌幅"
+                width="70">
+                </el-table-column>
+                <el-table-column
+                prop="All_rank"
+                label="市场排名"
+                width="80">
+                </el-table-column>
+                <el-table-column
+                prop="Ind_rank"
+                label="行业排名"
+                width="80">
+                </el-table-column>
+                <el-table-column
+                prop="Concept"
+                label="概念叠加"
+                width="150">
+                </el-table-column>
+                <el-table-column
+                prop="Related_concept"
+                label="贴合概念"    
+                width="280">
+                </el-table-column>
+            </el-table>
+            </div>
         </div>
     </div>
 </template>
@@ -255,54 +219,32 @@
                 search_stock: '',
                 limituptable_search: '',
                 search_concepts: null,
-                hotRankChart: null,
-                timer: null,
                 concept_loading: false,
                 sharpfall_loading: false,
-                activities: [],
-                dialogCandlestickVisible: false,
-                activeIndex: '1'
+                todayLimitupNum: 0,
+                yestodyLimitupNum: 0,
             }
         },
         created() {
             this.fullData();
             this.limitupStrategy();
         },
-        beforeDestroy() {
-            clearInterval(this.timer);
-            this.timer = null;
-        },
         mounted() {
-            this.initHotRankChart();
-            this.setHotRankChart();
-            this.updateNews();
             this.initConceptRankChart();
-            // this.initCandlestickChart();
-            // this.setCandlestickOption();
             this.initLimitupStatisticChart();
             this.loadAllSecurities();
 
-            //10分钟更新一次热榜
-            this.timer = setInterval(() => {
-                setTimeout(this.setHotRankChart(),0)
-            },60000*10);
-            //5分钟更新一次新闻资讯
-            this.timer = setInterval(() => {
-                setTimeout(this.updateNews(),0)
-            },60000*5);
         },
         methods: {
-            handleSelect(key, keyPath) {
-                console.log(key, keyPath);
-            },
             fullData () {
                 this.axios.get('/tangying/api/v1/data/limitup_stocks/').then( res => {
                     this.limituptableData = res.data
                 });
-            },
-            updateNews() {
-                this.axios.get('/tangying/api/v1/data/news/').then( res => {
-                    this.activities = res.data
+                this.axios.get('/tangying/api/v1/data/new_limitup_pool/').then( res => {
+                    this.todayLimitupNum = res.data.length
+                });
+                this.axios.get('/tangying/api/v1/data/pre_limitup_pool/').then( res => {
+                    this.yestodyLimitupNum = res.data.length
                 });
             },
             limitupStrategy() {
@@ -414,248 +356,131 @@
                 var nowDate = year + "-" +month + "-" +day;
                 return nowDate
             },
-            initHotRankChart() {
-                const hotDom = document.getElementById('hot-stocks-chart');
-                this.hotRankChart = this.$echarts.init(hotDom);
-            },
-            setHotRankChart() {
-                var option;
-                var top10_stocks;
-                
-                this.axios.get('/tangying/api/v1/data/hot10_stocks/').then(res => {
-                    top10_stocks = res.data;
-                });
-
-                //请求热榜数据
-                var hot_stocks_data_url = '/tangying/api/v1/data/hot_stocks/';
-                this.axios.get(hot_stocks_data_url).then((res) => {
-                const datasetWithFilters = [];
-                const seriesList = [];
-                const _this = this
-                this.$echarts.util.each(top10_stocks, function (stock) {
-                    var datasetId = '_' + stock;
-                    var d = new Date();
-                    // var start_time = _this.formatterDate(d);
-                    var start_time = _this.formatterDate(d) + "T09:20";
-                    var end_time = _this.formatterDate(d) + "T16:00";
-
-                    datasetWithFilters.push({
-                    id: datasetId,
-                    fromDatasetId: 'dataset_raw',
-                    //数据集转换器
-                    transform: {
-                        type: 'filter', //转换方式
-                        config: {//转换条件
-                        and: [  //逻辑运算
-                            { dimension: 'Time', gte: start_time,parser: 'time' }, //维度:Year 操作符：gte(>=)  比较对象：1950 详细参考文档
-                            { dimension: 'Time', lte: end_time,parser: 'time' },
-                            { dimension: 'Name', '=': stock } //维度：Country 关系操作符：=  比较对象：country
-                        ]
-                        }
-                    }
-                    });
-                    seriesList.push({
-                        type: 'line',
-                        datasetId: datasetId,
-                        showSymbol: false, //只在主轴为类目轴时有效,随主轴标签间隔隐藏策略(选中一条线其他线变暗)
-                        name: stock,  //系列名称，用于tooltip的显示
-                        endLabel: {  //折线图尾部文字
-                            show: true,
-                            formatter: function (params) {   //回调：尾部文字样式
-                            return params.value[0] + ': ' + params.value[1];
-                            }
-                        },
-                        labelLayout: {  //标签重叠时是否挪动标签位置，防重叠
-                            moveOverlap: 'shiftY'  //垂直位移
-                            // hideOverlap: true
-                        },
-                        emphasis: {  //在高亮图形时，是否淡出其它数据的图形
-                            focus: 'series'  //淡出
-                        },
-                        encode: {  //可以定义 data 的哪个维度被编码成什么
-                            x: 'Time',  //表示维度Time映射到x轴
-                            y: 'Popularity',  //表示维度Popularity映射到y轴
-                            label: ['Name', 'Rank'],  //表示维度Country、Income的键、 值会在tooltip中显示
-                            itemName: 'Time',  //表示维度Time为数据项名称
-                            tooltip: ['Rank']  //表示维度Income会在tooltip中显示
-                        }
-                    });
-            });
-            option = {
-                // 动画时长
-                animationDuration: 20000,
-                dataset: [
-                {
-                    id: 'dataset_raw',
-                    source: res.data
-                },
-                ...datasetWithFilters
-                ],
-                title: {
-                text: '人气榜',
-                left: "center"
-                },
-                tooltip: { //多系列提示框浮层排列顺序
-                    order: 'valueAsc', //根据数据值, 降序排列
-                    trigger: 'axis',  //坐标轴触发
-                    textStyle: {
-                        fontSize: 6
-                    },
-                    // backgroundColor: 'rgba(255,255,255,0)', //浮窗透明度
-                    position: function (point, params, dom, rect, size) {
-                        // console.log(params)
-                        // 固定在顶部
-                        return [point[0], '10%'];
-                    },
-                    // enterable: true  //调试使用
-                },
-                xAxis: {
-                type: 'time', //时间轴类型
-                nameLocation: 'end', //坐标轴名称显示位置
-                axisLabel: {
-                    formatter: '{M}/{d}\n{HH}:{mm}'
-                }
-                },
-                yAxis: {
-                name: '人气值/万'
-                },
-                grid: {
-                    left: 60,
-                    right: 80,
-                    bottom: 32
-                },
-                series: seriesList
-            };
-            this.hotRankChart.setOption(option);
-            }).catch((er) => {
-                console.log("err:",er);
-            });
-            },
             initConceptRankChart() {
-            var chartDom = document.getElementById('concept-rank');
-            var ConceptChart = this.$echarts.init(chartDom);
-            var option;
+                var chartDom = document.getElementById('concept-rank');
+                var ConceptChart = this.$echarts.init(chartDom);
+                var option;
 
-            const updateFrequency = 5000;
-            const dimension = 1; //哪一列作为横轴维度
+                const updateFrequency = 5000;
+                const dimension = 1; //哪一列作为横轴维度
 
-            this.axios.get('/tangying/api/v1/data/concept_statistic/').then( res => {
-                const data = res.data;
-                const dates = [];
-                for (let i = 0; i < data.length; ++i) {    //抽取data中所有第3column的数据
-                    if (dates.length === 0 || dates[dates.length - 1] !== data[i][3]) {  //去重
-                        dates.push(data[i][3]);  
-                    };
-                }
-                let date_set = [...new Set(dates)]
-                // console.log('dates:',date_set)
-                let startIndex = 1;  //保证data中的3号column有1个不同的值
-                let startDate = date_set[startIndex];
-                option = {
-                grid: {
-                    top: 10,
-                    bottom: 30,
-                    left: 80,
-                    right: 20
-                },
-                xAxis: {
-                    max: 'dataMax',
-                    axisLabel: {
-                    formatter: function (n) {  //n为类目值
-                        return Math.round(n) + '';
+                this.axios.get('/tangying/api/v1/data/concept_statistic/').then( res => {
+                    const data = res.data;
+                    const dates = [];
+                    for (let i = 0; i < data.length; ++i) {    //抽取data中所有第3column的数据
+                        if (dates.length === 0 || dates[dates.length - 1] !== data[i][3]) {  //去重
+                            dates.push(data[i][3]);  
+                        };
                     }
-                    }
-                },
-                //将字段date为startDate的data数据过滤出来
-                dataset: {//通过date的变化来收集某1个year的所有数据
-                    source: data.slice(1).filter(function (d) {  //slice(1)从索引为1的地方开始抽取数据，如果end被省略，则slice会一直提取到原数组末尾
-                    return d[3] === startDate;
-                    })
-                },
-                yAxis: {
-                    type: 'category',
-                    inverse: true,
-                    max: 9,
-                    axisLabel: {
-                    show: true,
-                    fontSize: 12,
-                    fontFamily: 'Microsoft YaHei',
-                    formatter: '{value}',
-                    rich: {
-                        flag: {
-                        fontSize: 25,
-                        padding: 5
+                    let date_set = [...new Set(dates)]
+                    // console.log('dates:',date_set)
+                    let startIndex = 1;  //保证data中的3号column有1个不同的值
+                    let startDate = date_set[startIndex];
+                    option = {
+                    grid: {
+                        top: 10,
+                        bottom: 30,
+                        left: 80,
+                        right: 20
+                    },
+                    xAxis: {
+                        max: 'dataMax',
+                        axisLabel: {
+                        formatter: function (n) {  //n为类目值
+                            return Math.round(n) + '';
                         }
-                    }
+                        }
                     },
-                    animationDuration: 500,
-                    animationDurationUpdate: 500  //数据更新动画的时长。
-                },
-                series: [
-                    {
-                    realtimeSort: true,
-                    seriesLayoutBy: 'column',//调整维度的方向 此处表示1列为1个维度（默认）
-                    type: 'bar',
-                    itemStyle: { //图形样式
-                        // color: function (param) { //柱条颜色
-                        //   return countryColors[param.value[3]] || '#5470c6'; //根据国家选颜色
-                        // }
-                        color: '#5470c6'
+                    //将字段date为startDate的data数据过滤出来
+                    dataset: {//通过date的变化来收集某1个year的所有数据
+                        source: data.slice(1).filter(function (d) {  //slice(1)从索引为1的地方开始抽取数据，如果end被省略，则slice会一直提取到原数组末尾
+                        return d[3] === startDate;
+                        })
                     },
-                    encode: {  //表示哪个维度映射到哪 数据集中1列表示1个维度
-                        x: dimension,
-                        y: 0
-                    },
-                    z: 1,
-                    zlevel: 1,
-                    label: {
+                    yAxis: {
+                        type: 'category',
+                        inverse: true,
+                        max: 9,
+                        axisLabel: {
                         show: true,
-                        precision: 1,
-                        position: 'right',
-                        valueAnimation: true,
-                        fontFamily: 'monospace'
-                    }
-                    }
-                ],
-                // Disable init animation.
-                animationDuration: 0,
-                animationDurationUpdate: updateFrequency,
-                animationEasing: 'linear',        //初始动画的缓动效果
-                animationEasingUpdate: 'linear',  //数据更新动画的缓动效果
-                graphic: {
-                    elements: [
-                    {
-                        type: 'text',
-                        right: 16,
-                        bottom: 50,
-                        style: { //z轴样式
-                        text: startDate,  //z轴文本
-                        font: 'bolder 20px monospace',
-                        fill: 'rgba(100, 100, 100, 0.75)'
+                        fontSize: 12,
+                        fontFamily: 'Microsoft YaHei',
+                        formatter: '{value}',
+                        rich: {
+                            flag: {
+                            fontSize: 25,
+                            padding: 5
+                            }
+                        }
                         },
-                        z: 100
+                        animationDuration: 500,
+                        animationDurationUpdate: 500  //数据更新动画的时长。
+                    },
+                    series: [
+                        {
+                        realtimeSort: true,
+                        seriesLayoutBy: 'column',//调整维度的方向 此处表示1列为1个维度（默认）
+                        type: 'bar',
+                        itemStyle: { //图形样式
+                            // color: function (param) { //柱条颜色
+                            //   return countryColors[param.value[3]] || '#5470c6'; //根据国家选颜色
+                            // }
+                            color: '#5470c6'
+                        },
+                        encode: {  //表示哪个维度映射到哪 数据集中1列表示1个维度
+                            x: dimension,
+                            y: 0
+                        },
+                        z: 1,
+                        zlevel: 1,
+                        label: {
+                            show: true,
+                            precision: 1,
+                            position: 'right',
+                            valueAnimation: true,
+                            fontFamily: 'monospace'
+                        }
+                        }
+                    ],
+                    // Disable init animation.
+                    animationDuration: 0,
+                    animationDurationUpdate: updateFrequency,
+                    animationEasing: 'linear',        //初始动画的缓动效果
+                    animationEasingUpdate: 'linear',  //数据更新动画的缓动效果
+                    graphic: {
+                        elements: [
+                        {
+                            type: 'text',
+                            right: 16,
+                            bottom: 50,
+                            style: { //z轴样式
+                            text: startDate,  //z轴文本
+                            font: 'bolder 20px monospace',
+                            fill: 'rgba(100, 100, 100, 0.75)'
+                            },
+                            z: 100
+                        }
+                        ]
                     }
-                    ]
-                }
-                }
-                // console.log(option);
-                ConceptChart.setOption(option);
-                for (let i = startIndex; i < date_set.length - 1; ++i) {
-                (function (i) {
-                    setTimeout(function () {
-                    updateDate(date_set[i + 1]);
-                    }, (i - startIndex) * updateFrequency);
-                })(i);
-                }
-                function updateDate(date) {
-                    let source = data.slice(1).filter(function (d) {
-                        return d[3] === date;
-                    });
-                    option.series[0].data = source;
-                    option.graphic.elements[0].style.text = date;
+                    }
+                    // console.log(option);
                     ConceptChart.setOption(option);
-                }
-            });
+                    for (let i = startIndex; i < date_set.length - 1; ++i) {
+                    (function (i) {
+                        setTimeout(function () {
+                        updateDate(date_set[i + 1]);
+                        }, (i - startIndex) * updateFrequency);
+                    })(i);
+                    }
+                    function updateDate(date) {
+                        let source = data.slice(1).filter(function (d) {
+                            return d[3] === date;
+                        });
+                        option.series[0].data = source;
+                        option.graphic.elements[0].style.text = date;
+                        ConceptChart.setOption(option);
+                    }
+                });
             },
             initLimitupStatisticChart() {
                 var chartDom = document.getElementById('limitupStatistic');
@@ -720,6 +545,12 @@
                         },
                         tooltip: {
                             trigger: 'axis',
+                            position: function (point,params,dom,rect,size) {
+                                // 鼠标在左侧时 tooltip 显示到右侧，鼠标在右侧时 tooltip 显示到左侧。
+                                var obj = {top: 20};
+                                obj[['left', 'right'][+(point[0] < size.viewSize[0] / 2)]] = 5;
+                                return obj;
+                            },
                             formatter: function(params) {  //series.encode.tooltip无法实现显示股票名称
                                 // console.log('params:',params);
                                 let data_1_2 = params[0];
@@ -1153,23 +984,20 @@
 }
 </script>
 
-<style lang="less" scoped>
+<style lang="less">
     // * {
     //     border: 1px solid black;
     // }
-   .basic-charts {
-        width: 600px;
-        height: 500px;
+   .left-charts {
+        width: 700px;
+        height: 100%;
         background-color: white;
     }
-   .tow-row-charts {
-        width: 900px;
-        height: 500px;
+   .right-charts {
+        width: 1000px;
+        padding-left: 50px;
+        height: 100%;
         background-color: white;
-    }
-
-    .div-height {
-        height: 500px;
     }
 
     .flex {
@@ -1185,7 +1013,30 @@
       flex-direction: column-reverse;
     }
 
-    .flex-centor {
+    .row-rev {
+      flex-direction: row-reverse;
+    }
+
+    .flex-row-half {
+        width: 50%;
+    }
+
+    .flex-center {
         justify-content: center;
     }
+
+    .text-center {
+        text-align: center;
+    }
+
+    .el-table__body-wrapper::-webkit-scrollbar {
+	    width: 0;
+    }
+
+    .limitup-num-font {
+        font-family: "Fira Mono";
+        font-size: 30px;
+        // font-weight: bold;
+    }
+
 </style>
