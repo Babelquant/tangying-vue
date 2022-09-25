@@ -76,20 +76,19 @@
 
                 <div class="flex column" style="width: 420px;">
                     <div class="flex" style="height: 40%;">
-                        <div class="flex:1"  style="padding-right: 8px;">
+                        <div class="flex:1"  style="padding: 5px;">
                             <el-card  
                             :body-style="{padding: '5px'}" 
                             style="width: 220px;height: 100%;">
                                 <div style="height: 20px;" class="text-center">涨停板</div>
                                 <div class="flex" style="height: 65px;">
-                                    <div class="text-center flex-row-half limitup-num-font" style="line-height: 65px;">{{todayLimitupNum}}</div>
-                                    <div class="text-center flex-row-half limitup-num-font" style="line-height: 65px;">{{yestodyLimitupNum}}</div>
+                                    <div class="text-center flex-row-half limitup-num-font" :style="{'color':todayLimitupNum>yestodyLimitupNum?'red':'green'}">{{todayLimitupNum}}</div>
+                                    <div class="text-center flex-row-half limitup-num-font">{{yestodyLimitupNum}}</div>
                                 </div>
                                 <div class="flex" style="height: 20px;">
                                     <div class="text-center flex-row-half">今日</div>
                                     <div class="text-center flex-row-half">昨日</div>
                                 </div >
-                     
                             </el-card>
                         </div>
 
@@ -107,6 +106,20 @@
                             :trigger-on-focus="false"
                             @select="stockSelect"
                             ></el-autocomplete>
+                            <div style="padding-top: 15px;">
+                            <!-- 上证指数 -->
+                                <el-card
+                                :body-style="{padding: '5px'}">
+                                    <!-- v-if用于条件判断,判断Dom元素是否显示 -->
+                                    <div class="flex" :style="indexColor(shangzheng_index.涨跌额)" v-if="shangzheng_index != null">
+                                        <div class="shangzheng-index-font" style="width: 70%;line-height: 60px;">{{shangzheng_index.最新价.toFixed(2)}}</div>
+                                        <div class="flex column" style="width: 30%">
+                                            <div style="height: 50%;line-height: 30px;">{{shangzheng_index.涨跌额}}</div>
+                                            <div style="height: 50%;line-height: 30px;">{{shangzheng_index.涨跌幅.toFixed(2)}}%</div>
+                                        </div>
+                                    </div>
+                                </el-card> 
+                            </div>
                         </div>
                     </div>
                     
@@ -223,10 +236,17 @@
                 sharpfall_loading: false,
                 todayLimitupNum: 0,
                 yestodyLimitupNum: 0,
+                shangzheng_index: null,
+                timer: null,
             }
+        },
+        beforeDestroy() {
+            clearInterval(this.timer);
+            this.timer = null;
         },
         created() {
             this.fullData();
+            this.shangzIndex();
             this.limitupStrategy();
         },
         mounted() {
@@ -234,6 +254,21 @@
             this.initLimitupStatisticChart();
             this.loadAllSecurities();
 
+            //10s更新一次上证指数
+            this.timer = setInterval(() => {
+                setTimeout(this.shangzIndex(),0)
+            },10000);
+        },
+        computed: {
+            indexColor() {
+                return(value) => {
+                    if (value < 0) {
+                        return {'color': 'green'}
+                    } else {
+                        return {'color': 'red'}
+                    }
+                }
+            }
         },
         methods: {
             fullData () {
@@ -245,6 +280,12 @@
                 });
                 this.axios.get('/tangying/api/v1/data/pre_limitup_pool/').then( res => {
                     this.yestodyLimitupNum = res.data.length
+                });
+            },
+            shangzIndex() {
+                this.axios.get('/tangying/api/v1/data/sz_index/').then( res => {
+                    // console.log('ret:',res.data[0])
+                    this.shangzheng_index = res.data[0]
                 });
             },
             limitupStrategy() {
@@ -1036,7 +1077,13 @@
     .limitup-num-font {
         font-family: "Fira Mono";
         font-size: 30px;
+        line-height: 65px;
         // font-weight: bold;
+    }
+
+    .shangzheng-index-font {
+        font-family: "Fantasy ";
+        font-size: 30px;
     }
 
 </style>
