@@ -82,8 +82,8 @@
                             style="width: 220px;height: 100%;">
                                 <div style="height: 20px;" class="text-center">涨停板</div>
                                 <div class="flex" style="height: 65px;">
-                                    <div class="text-center flex-row-half limitup-num-font" :style="{'color':todayLimitupNum>yestodyLimitupNum?'red':'green'}">{{todayLimitupNum}}</div>
-                                    <div class="text-center flex-row-half limitup-num-font">{{yestodyLimitupNum}}</div>
+                                    <div class="text-center flex-row-half limitup-num-font" :style="{'color':todayLimitupNum>yesterdayLimitupNum?'red':'green'}">{{todayLimitupNum}}</div>
+                                    <div class="text-center flex-row-half limitup-num-font">{{yesterdayLimitupNum}}</div>
                                 </div>
                                 <div class="flex" style="height: 20px;">
                                     <div class="text-center flex-row-half">今日</div>
@@ -235,7 +235,7 @@
                 concept_loading: false,
                 sharpfall_loading: false,
                 todayLimitupNum: 0,
-                yestodyLimitupNum: 0,
+                yesterdayLimitupNum: 0,
                 shangzheng_index: null,
                 timer: null,
             }
@@ -291,7 +291,7 @@
                     this.todayLimitupNum = res.data.length
                 });
                 this.axios.get('/tangying/api/v1/data/pre_limitup_pool/').then( res => {
-                    this.yestodyLimitupNum = res.data.length
+                    this.yesterdayLimitupNum = res.data.length
                 });
             },
             shangzIndex() {
