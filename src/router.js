@@ -15,10 +15,11 @@ const routes = [
   { path: '/', redirect: '/login' },
   { path: '/home', 
     component: Home,
-    redirect: '/review', 
-    children:[{path: '/review', component: Review},
+    children:[
+      {path: '/review', component: Review},
       { path: '/board', component: Board },
-      { path: '/trader', component: Trader }] 
+      { path: '/trader', component: Trader }
+    ] 
   },
   { path: '/test', component: Test }
 ]

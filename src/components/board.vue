@@ -35,8 +35,9 @@
             }
         },
         beforeDestroy() {
-            clearInterval(this.timer);
-            this.timer = null;
+            if(this.timer) {
+                clearTimeout(this.timer);
+            }
         },
         mounted() {
             this.updateNews();

@@ -51,7 +51,7 @@
         },
         beforeDestroy() {
             if(this.timer) {
-                clearInterval(this.timer);
+                clearTimeout(this.timer);
             }
         },
         mounted() {

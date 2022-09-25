@@ -99,7 +99,7 @@
                             class="inline-input"
                             v-model="search_stock"
                             :fetch-suggestions="stockQuerySearch"
-                            placeholder="股票名/股票代码"
+                            placeholder="输入股票名/k线图查询"
                             size="mini"
                             :clearable="true"
                             :maxlength="8"
@@ -241,9 +241,11 @@
             }
         },
         beforeDestroy() {
-            clearInterval(this.timer);
-            this.timer = null;
+            if(this.timer) {
+                clearTimeout(this.timer);
+            }
         },
+        //created钩子里的data变量不用v-if判断,因为是在dom之前初始化的
         created() {
             this.fullData();
             this.shangzIndex();
@@ -254,10 +256,20 @@
             this.initLimitupStatisticChart();
             this.loadAllSecurities();
 
-            //10s更新一次上证指数
+            //60s更新一次上证指数
             this.timer = setInterval(() => {
                 setTimeout(this.shangzIndex(),0)
-            },10000);
+            },60000);
+
+            //1分钟更新一次当前涨停板
+            // this.timer = setInterval(() => {
+            //     let _this = this
+            //     setTimeout(function(){
+            //         _this.axios.get('/tangying/api/v1/data/new_limitup_pool/').then( res => {
+            //         _this.todayLimitupNum = res.data.length
+            //     });
+            //     },0)
+            // },60000);
         },
         computed: {
             indexColor() {
