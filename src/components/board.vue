@@ -30,25 +30,23 @@
         data() {
             return {
                 hotRankChart: null,
-                timer: null,
+                timer1: null,
+                timer2: null,
                 activities: [],
             }
         },
         beforeDestroy() {
-            if(this.timer) {
-                clearTimeout(this.timer);
-            }
+            clearTimeout(this.timer1);
+            clearTimeout(this.timer2);
         },
         mounted() {
             this.updateNews();
             this.initHotRankChart();
             this.setHotRankChart();
             //10分钟更新一次热榜
-            this.timer = setInterval(() => {
-                setTimeout(this.setHotRankChart(),0)
-            },60000*10);
+            this.timer1 = setInterval(() => {setTimeout(this.setHotRankChart(),0)},60000*10);
             //5分钟更新一次新闻资讯
-            this.timer = setInterval(() => {
+            this.timer2 = setInterval(() => {
                 setTimeout(this.updateNews(),0)
             },60000*5);
         },
@@ -140,56 +138,56 @@
                             tooltip: ['Rank']  //表示维度Income会在tooltip中显示
                         }
                     });
-            });
-            option = {
-                // 动画时长
-                animationDuration: 20000,
-                dataset: [
-                {
-                    id: 'dataset_raw',
-                    source: res.data
-                },
-                ...datasetWithFilters
-                ],
-                title: {
-                text: '人气榜',
-                left: "center"
-                },
-                tooltip: { //多系列提示框浮层排列顺序
-                    order: 'valueAsc', //根据数据值, 降序排列
-                    trigger: 'axis',  //坐标轴触发
-                    textStyle: {
-                        fontSize: 6
+                });
+                option = {
+                    // 动画时长
+                    animationDuration: 20000,
+                    dataset: [
+                    {
+                        id: 'dataset_raw',
+                        source: res.data
                     },
-                    // backgroundColor: 'rgba(255,255,255,0)', //浮窗透明度
-                    position: function (point, params, dom, rect, size) {
-                        // console.log(params)
-                        // 固定在顶部
-                        return [point[0], '10%'];
+                    ...datasetWithFilters
+                    ],
+                    title: {
+                    text: '人气榜',
+                    left: "center"
                     },
-                    // enterable: true  //调试使用
-                },
-                xAxis: {
-                type: 'time', //时间轴类型
-                nameLocation: 'end', //坐标轴名称显示位置
-                axisLabel: {
-                    formatter: '{M}/{d}\n{HH}:{mm}'
-                }
-                },
-                yAxis: {
-                name: '人气值/万'
-                },
-                grid: {
-                    left: 60,
-                    right: 80,
-                    bottom: 32
-                },
-                series: seriesList
-            };
-            this.hotRankChart.setOption(option);
-            }).catch((er) => {
-                console.log("err:",er);
-            });
+                    tooltip: { //多系列提示框浮层排列顺序
+                        order: 'valueAsc', //根据数据值, 降序排列
+                        trigger: 'axis',  //坐标轴触发
+                        textStyle: {
+                            fontSize: 6
+                        },
+                        // backgroundColor: 'rgba(255,255,255,0)', //浮窗透明度
+                        position: function (point, params, dom, rect, size) {
+                            // console.log(params)
+                            // 固定在顶部
+                            return [point[0], '10%'];
+                        },
+                        // enterable: true  //调试使用
+                    },
+                    xAxis: {
+                    type: 'time', //时间轴类型
+                    nameLocation: 'end', //坐标轴名称显示位置
+                    axisLabel: {
+                        formatter: '{M}/{d}\n{HH}:{mm}'
+                    }
+                    },
+                    yAxis: {
+                    name: '人气值/万'
+                    },
+                    grid: {
+                        left: 60,
+                        right: 80,
+                        bottom: 32
+                    },
+                    series: seriesList
+                };
+                this.hotRankChart.setOption(option);
+                }).catch((er) => {
+                    console.log("err:",er);
+                });
             }
         }
 }

@@ -2,7 +2,47 @@
     <div class="flex flex-center">
         <!-- 左图 -->
         <div class="left-charts flex column">
-            <div id="concept-rank" style="height:300px;"></div>
+            <div class="flex" style="height:300px;">
+                <div id="concept-rank" class="flex-row-half"></div>
+                <div id="industry-rank" class="flex-row-half"></div>
+                <div v-show="showIndustryDetail" ref="industryTable" class="industry-tooltip">
+                    <el-table
+                    :data="limitupIndustryTableData"
+                    size="mini"
+                    style="width: 100%">
+                        <el-table-column
+                            prop="名称"
+                            label="名称"
+                            width="70">
+                        </el-table-column>
+                        <el-table-column
+                            prop="最新价"
+                            label="最新价"
+                            width="60">
+                        </el-table-column>
+                        <el-table-column
+                            prop="流通市值"
+                            label="流通盘"
+                            width="60">
+                        </el-table-column>
+                        <el-table-column
+                            prop="封板资金"
+                            label="封单金额"
+                            width="70">
+                        </el-table-column>
+                        <el-table-column
+                            prop="首次封板时间"
+                            label="首封时间"
+                            width="70">
+                        </el-table-column>
+                        <el-table-column
+                            prop="连板数"
+                            label="连板数"
+                            width="60">
+                        </el-table-column>
+                    </el-table>
+                </div>
+            </div>
             <div id="limitupStatistic" style="height:450px;padding-top: 50px;"></div>
         </div>
         <!-- 右图 -->
@@ -27,8 +67,9 @@
                         </el-table-column>
                         <el-table-column
                         prop="Currency_value"
-                        label="流通值/亿"
-                        width="80">
+                        label="流通盘"
+                        :formatter="valueSuffix"
+                        width="75">
                         </el-table-column>
                         <!-- <el-table-column
                         prop="_Reason_type"
@@ -127,7 +168,11 @@
 
                     <!-- 股票k线图弹框 -->
                     <div id="candlestick" style="display: none;width: 1050px; height:650px">
-                        <div id="candlestickMain" style="width: 1050px; height:650px"></div>
+                        <div style="width: 1050px; height:30px" v-if="stock_info != null">
+                            <p class="stock-info-annotation">公司亮点：{{stock_info.lightspot}}</p>
+                            <p class="stock-info-annotation">主营业务：{{stock_info.major}}</p>
+                        </div>
+                        <div id="candlestickMain" style="width: 1050px; height:620px"></div>
                     </div>
                 </div>
             </div>
@@ -162,54 +207,115 @@
             </div>
             <!-- 概念列表 -->
             <div style="height:420px;">
-            <el-table
-                v-loading="concept_loading"
-                :data="conceptstretagytableData"
-                @row-click="lookCandlestick"
-                :default-sort = "{prop: 'concept_num', order: 'descending'}"
-                height= 400
-                style="width: 100%">
-                <el-table-column
-                prop="Name"
-                label="股票名称"
-                width="85">
-                </el-table-column>
-                <el-table-column
-                prop="Latest"
-                label="最新价"
-                width="70">
-                </el-table-column>
-                <el-table-column
-                prop="Currency_value"
-                label="流通盘/亿"
-                width="90">
-                </el-table-column>
-                <el-table-column
-                prop="Change_percent"
-                label="涨跌幅"
-                width="70">
-                </el-table-column>
-                <el-table-column
-                prop="All_rank"
-                label="市场排名"
-                width="80">
-                </el-table-column>
-                <el-table-column
-                prop="Ind_rank"
-                label="行业排名"
-                width="80">
-                </el-table-column>
-                <el-table-column
-                prop="Concept"
-                label="概念叠加"
-                width="150">
-                </el-table-column>
-                <el-table-column
-                prop="Related_concept"
-                label="贴合概念"    
-                width="280">
-                </el-table-column>
-            </el-table>
+                <el-table
+                    v-loading="concept_loading"
+                    :data="conceptstretagytableData"
+                    :row-class-name="conceptTableRowClassName"
+                    @row-click="lookCandlestick"
+                    :default-sort = "{prop: 'concept_num', order: 'descending'}"
+                    height= 400
+                    style="width: 100%">
+                    <el-table-column
+                    prop="Name"
+                    label="股票名称"
+                    width="85">
+                    </el-table-column>
+                    <el-table-column
+                    prop="Latest"
+                    label="最新价"
+                    width="70">
+                    </el-table-column>
+                    <el-table-column
+                    prop="Currency_value"
+                    label="流通盘"
+                    :formatter="valueSuffix"
+                    width="80">
+                    </el-table-column>
+                    <el-table-column
+                    prop="Change_percent"
+                    label="涨跌幅"
+                    :formatter="upDownStyle"
+                    width="70">
+                    </el-table-column>
+                    <el-table-column
+                    prop="All_rank"
+                    label="市场排名"
+                    sortable
+                    width="100">
+                    </el-table-column>
+                    <el-table-column
+                    prop="Ind_rank"
+                    label="行业排名"
+                    sortable
+                    width="100">
+                    </el-table-column>
+                    <el-table-column
+                    prop="Concept"
+                    label="概念叠加"
+                    width="150">
+                    </el-table-column>
+                    <el-table-column
+                    prop="Related_concept"
+                    label="贴合概念"    
+                    width="280">
+                    </el-table-column>
+                    <el-table-column
+                    fixed="right"
+                    label="操作"
+                    width="80">
+                    <template slot-scope="scope">
+                        <el-popover
+                        placement="left"
+                        width="160">
+                            <el-form  ref="buyForm" :model="buyForm" size="small">
+                                <el-form-item label="价格:">
+                                    <el-col :span="2"><el-button>-</el-button></el-col>
+                                    <el-col :span="6">
+                                        <el-input v-model="buyForm.price" placeholder="scope.row.Latest"></el-input>
+                                    </el-col>
+                                    <el-col :span="2"><el-button>+</el-button></el-col>
+                                </el-form-item>
+                                <el-form-item label="数量:">
+                                    <el-col :span="2"><el-button>-</el-button></el-col>
+                                    <el-col :span="6">
+                                        <el-input v-model="buyForm.mount" placeholder="100"></el-input>
+                                    </el-col>
+                                    <el-col :span="2"><el-button>+</el-button></el-col>
+                                </el-form-item>
+                                <el-form-item size="mini">
+                                    <el-button>取消</el-button>
+                                    <el-button type="primary" @click="buySubmit(scope.row)">确定</el-button>
+                                </el-form-item>
+                            </el-form>
+                            <el-button 
+                            type="text" 
+                            size="small" 
+                            slot="reference"  
+                            @click.stop>买入</el-button>
+                        </el-popover>
+                    </template>
+                    </el-table-column>
+                </el-table>
+                <el-dialog 
+                title="收货地址" 
+                :visible.sync="dialogBuyFormVisible"
+                width="100px">
+                    <el-form :model="buyForm">
+                        <el-form-item label="活动名称" label-width="50px">
+                            <el-input v-model="buyForm.name" autocomplete="off"></el-input>
+                        </el-form-item>
+                        <el-form-item label="活动区域" label-width="80px">
+                            <el-select v-model="buyForm.price" placeholder="请选择活动区域">
+                                <el-option label="区域一" value="shanghai"></el-option>
+                                <el-option label="区域二" value="beijing"></el-option>
+                            </el-select>
+                        </el-form-item>
+                    </el-form>
+                    <div slot="footer" class="dialog-footer">
+                        <el-button @click="dialogBuyFormVisible = false">取 消</el-button>
+                        <el-button type="primary" @click="dialogBuyFormVisible = false">确 定</el-button>
+                    </div>
+                </el-dialog>
             </div>
         </div>
     </div>
@@ -223,7 +329,9 @@
     export default {
         data() {
             return {
+                industryRankChart: null,
                 limituptableData: [],
+                limitupIndustryTableData: [],
                 conceptstretagytableData: [],
                 sharpfallstretagytableData: [],
                 allsecurities: [],
@@ -237,13 +345,24 @@
                 todayLimitupNum: 0,
                 yesterdayLimitupNum: 0,
                 shangzheng_index: null,
-                timer: null,
+                timer1: null,
+                timer2: null,
+                timer3: null,
+                stock_info: null,
+                dialogBuyFormVisible: false,
+                showIndustryDetail: false,
+                buyForm: {
+                    name: '',
+                    price: 0,
+                    mount: 0
+                }
             }
         },
         beforeDestroy() {
-            if(this.timer) {
-                clearTimeout(this.timer);
-            }
+            // window.clearInterval(this.timer);
+            clearTimeout(this.timer1);
+            clearTimeout(this.timer2);
+            clearTimeout(this.timer3);
         },
         //created钩子里的data变量不用v-if判断,因为是在dom之前初始化的
         created() {
@@ -253,23 +372,28 @@
         },
         mounted() {
             this.initConceptRankChart();
+            this.initIndustryRankChart();
+            this.setIndustryRankChart();
             this.initLimitupStatisticChart();
             this.loadAllSecurities();
 
             //60s更新一次上证指数
-            this.timer = setInterval(() => {
+            this.timer1 = setInterval(() => {
                 setTimeout(this.shangzIndex(),0)
             },60000);
-
-            //1分钟更新一次当前涨停板
-            // this.timer = setInterval(() => {
-            //     let _this = this
-            //     setTimeout(function(){
-            //         _this.axios.get('/tangying/api/v1/data/new_limitup_pool/').then( res => {
-            //         _this.todayLimitupNum = res.data.length
-            //     });
-            //     },0)
-            // },60000);
+            // 1分钟更新一次当前涨停板
+            this.timer2 = setInterval(() => {
+                let _this = this
+                setTimeout(function(){
+                    _this.axios.get('/tangying/api/v1/data/new_limitup_pool/').then( res => {
+                    _this.todayLimitupNum = res.data.length
+                });
+                },0)
+            },60000);
+            //60s更新一次最新涨停行业分析
+            this.timer3 = setInterval(() => {
+                setTimeout(this.setIndustryRankChart(),0)
+            },60000);
         },
         computed: {
             indexColor() {
@@ -329,10 +453,30 @@
                 });
             },
             lookCandlestick(row) {
-                // console.log(row);
-                // console.log(column);
                 let item = {code: row.Code,value: row.Name,latest: row.Latest};
                 this.stockSelect(item);
+            },
+            upDownStyle(column) {
+                // console.log(column.Change_percent,typeof(column.Change_percent));
+                let per = column.Change_percent;
+                if (per < 0){
+                    return <span style="color: green">{per}%</span>
+                }else {
+                    return <span style="color: red">{per}%</span>
+                }
+            },
+            valueSuffix(column) {
+                return <span>{column.Currency_value}亿</span>
+            },
+            buySubmit(row) {
+                console.log(this.buyForm,row.Code)
+                // let item = {code: row.Code,name: row.Name,latest: row.Latest};
+            },
+            conceptTableRowClassName({row, rowIndex}) {
+                if (row.All_rank < 100 && row.Ind_rank < 10) {
+                    return 'good-row';
+                }
+                return '';
             },
             //股票k线图弹框
             async stockSelect(item) {
@@ -344,21 +488,25 @@
                     res = await this.axios.get('/tangying/api/v1/data/latest_price/'+item.code+'/');
                     item['latest'] = res.data[0].收盘;
                 };
-                //获取排名情况
+                //获取股票详情
                 //axios实现同步请求
-                res = await this.axios.get('/tangying/api/v1/data/stock_latest_rank/'+item.code+'/');
-                let rank_info = res.data;
-                // console.log('rank:',rank_info)
+                res = await this.axios.get('/tangying/api/v1/data/stock_info/'+item.code+'/');
+                let stock_info = res.data;
+                this.stock_info = stock_info;
                 this.$nextTick(() => {                       // Can't get dom width or height报错解决方法
                     this.setCandlestickChart(item.code);
                 });
-                let rank_cha = rank_info.rankChange;
-                let change = rank_cha>0?'<i class="el-icon-top" style="font-size:smaller;color:red">'+rank_cha+'</i>':'<i class="el-icon-bottom" style="font-size:smaller;color:green">'+Math.abs(rank_cha)+'</i>';
+                // let rank_cha = stock_info.rankChange;
+                // let change = rank_cha>0?'<i class="el-icon-top" style="font-size:smaller;color:red">'+rank_cha+'</i>':'<i class="el-icon-bottom" style="font-size:smaller;color:green">'+Math.abs(rank_cha)+'</i>';
                 head = [
                     '<span style="font-size:larger;margin-right:10px;">'+item.value+'</span>',
                     '<span style="font-family:Fantasy;font-size:larger;margin-right:15px;">'+item.latest+'</span>',
-                    '<span style="font-size:smaller;margin-right:5px;">排名：'+rank_info.rank+'</span>',
-                    change
+                    '<span style="font-size:smaller;margin-right:5px;">市场排名：'+stock_info.all_rank+'</span>',
+                    '<span style="font-size:smaller;margin-right:15px;">行业排名：'+stock_info.industry_rank+'</span>',
+                    '<span style="font-size:smaller;margin-right:15px;">行业：'+stock_info.industry+'</span>',
+                    // '<p style="font-size:smaller;">公司亮点：'+stock_info.lightspot+'</p>',
+                    // '<p style="font-size:smaller;">主营业务：'+stock_info.major+'</p>',
+                    // change
                 ].join('');
                 // let head = [item.value,head_style];
                 layer.open({
@@ -535,6 +683,96 @@
                     }
                 });
             },
+            initIndustryRankChart() {
+                const industryDom = document.getElementById('industry-rank');
+                this.industryRankChart = this.$echarts.init(industryDom);
+            },
+            setIndustryRankChart() {
+                function splitData(rawData) {
+                    let categoryData = [];
+                    let values = [];
+                    // for (let k in rawData) {
+                    //     console.log(k,rawData[k].length);
+                    //     categoryData.push(k);
+                    //     values.push({'value':rawData[k].length,'stocks':rawData[k]}); 
+                    // }
+                    categoryData = Object.keys(rawData).sort(function(pre,next){return rawData[pre].length-rawData[next].length});  //升序
+                    if (categoryData.length>20) {
+                        categoryData = categoryData.slice(20);
+                    };
+                    categoryData.forEach((item)=>{
+                        values.push({'value':rawData[item].length,'stocks':rawData[item]}); 
+                    });
+                    return {
+                        categoryData: categoryData,  
+                        values: values
+                    };
+                };
+                var option;
+                var data;
+                var _this = this;
+                this.axios.get('/tangying/api/v1/data/limitup_industry/').then( res => {
+                    data = splitData(res.data);
+                    option = {
+                        tooltip: {
+                            trigger: 'axis',
+                            enterable: 'true',
+                            formatter: function(params) { 
+                                // console.log('params:',params);
+                                _this.limitupIndustryTableData = params[0].data['stocks'];
+                                _this.showIndustryDetail = true;
+                                return _this.$refs.industryTable;
+                            },
+                            textStyle: {
+                                fontSize: 7
+                            },
+                            position: function (point) {
+                                // 固定在顶部
+                                return [point[0], '10%'];
+                            },
+                            axisPointer: {
+                                type: 'shadow'
+                            }
+                        },
+                        legend: {},
+                        // grid: {
+                        //     left: '3%',
+                        //     right: '4%',
+                        //     bottom: '3%',
+                        //     containLabel: true
+                        // },    
+                        grid: {
+                            top: 10,
+                            bottom: 30,
+                            left: 70,
+                            right: 20
+                        },
+                        xAxis: {
+                            type: 'value',
+                            boundaryGap: [0, 0.01]
+                        },
+                        yAxis: {
+                            type: 'category',
+                            axisLabel: {
+                                interval: 0
+                            },
+                            data: data.categoryData
+                        },
+                        series: [
+                            {
+                            type: 'bar',
+                            label: {
+                                show: true,
+                                position: "right"
+                            },
+                            data: data.values
+                            }
+                        ]
+                    };
+                    this.industryRankChart.setOption(option);
+                });
+
+            },
             initLimitupStatisticChart() {
                 var chartDom = document.getElementById('limitupStatistic');
                 var myChart = this.$echarts.init(chartDom);
@@ -549,7 +787,9 @@
                     };
                     let date_set = [...new Set(dates)];
                     // console.log('dates:',date_set);
-
+                    if(date_set.length == 0) {
+                        return;
+                    }
                     //格式化数据集 [日期 首板数 2天2板数 3天3板数 首板票 2天2板票 3天3板票 1进2淘汰票 2进3淘汰票 1进2成功率 2进3成功率]
                     for  (let i = 0; i < date_set.length; ++i) {
                         let filter_stocks;
@@ -588,9 +828,9 @@
                         let index = 0;
                         let new_arr = [];
                         while(index < arr.length){
-                            new_arr.push(arr.slice(index, index+=len))
+                            new_arr.push(arr.slice(index, index+=len));
                         }
-                        return new_arr
+                        return new_arr;
                     };
                     option = {
                         dataset: {
@@ -598,45 +838,30 @@
                         },
                         tooltip: {
                             trigger: 'axis',
+                            enterable: 'true',  //鼠标可移入提示框
                             position: function (point,params,dom,rect,size) {
                                 // 鼠标在左侧时 tooltip 显示到右侧，鼠标在右侧时 tooltip 显示到左侧。
                                 var obj = {top: 20};
-                                obj[['left', 'right'][+(point[0] < size.viewSize[0] / 2)]] = 5;
+                                obj[['left', 'right'][+(point[0] < size.viewSize[0] / 2)]] = 15;
                                 return obj;
                             },
                             formatter: function(params) {  //series.encode.tooltip无法实现显示股票名称
                                 // console.log('params:',params);
                                 let data_1_2 = params[0];
                                 let data_2_3 = params[1];
-                                let rise_stocks = splitArray(data_1_2.value[5],5);
-                                let out_stocks = splitArray(data_1_2.value[7],5);
+                                // let rise_stocks = splitArray(data_1_2.value[5],5);
+                                // let out_stocks = splitArray(data_1_2.value[7],5);
 
-                                let head_1_2 = data_1_2.marker + data_1_2.seriesName + '&nbsp&nbsp&nbsp&nbsp 成功率：' + data_1_2.value[9] + '%<br/><span style="font-weight:bold">晋级' + data_1_2.value[2] + '支：</span>';
-                                for (let i = 0; i < rise_stocks.length; ++i) {
-                                    head_1_2 += rise_stocks[i].join(' ') + '<br/>';
-                                };
-                                head_1_2 += '<span style="font-weight:bold">淘汰' + data_1_2.value[7].length + '支：</span>';
-                                for (let i = 0; i < out_stocks.length; ++i) {
-                                    head_1_2 += out_stocks[i].join(' ') + '<br/>';
-                                };
-                                  
-                                rise_stocks = splitArray(data_2_3.value[6],5);
-                                out_stocks = splitArray(data_2_3.value[8],5);
-                                let head_2_3 = data_2_3.marker + data_2_3.seriesName + '&nbsp&nbsp&nbsp&nbsp 成功率:' + data_2_3.value[10] + '%<br/><span style="font-weight:bold">晋级' + data_2_3.value[3] + '支：</span>';
-                                for (let i = 0; i < rise_stocks.length; ++i) {
-                                    head_2_3 += rise_stocks[i].join(' ') + '<br/>';
-                                };
-                                head_2_3 += '<span style="font-weight:bold">淘汰' + data_1_2.value[8].length + '支：</span>';
-                                for (let i = 0; i < out_stocks.length; ++i) {
-                                    head_2_3 += out_stocks[i].join(' ') + '<br/>';
-                                };
+                                return data_1_2.marker + data_1_2.seriesName + '&nbsp&nbsp&nbsp&nbsp 成功率：' + data_1_2.value[9] + '%<br/><span class="font-bold">晋级' + data_1_2.value[2] + '支：</span>' + data_1_2.value[5].join(' ') + '<br/><span class="font-bold">淘汰' + data_1_2.value[7].length + '支：</span>' + data_1_2.value[7].join(' ') + '<br/><br/>' + data_2_3.marker + data_2_3.seriesName + '&nbsp&nbsp&nbsp&nbsp 成功率:' + data_2_3.value[10] + '%<br/><span class="font-bold">晋级' + data_2_3.value[3] + '支：</span>' + data_2_3.value[6].join(' ') + '<br/><span class="font-bold">淘汰' + data_2_3.value[8].length + '支：</span>' + data_2_3.value[8].join(' ') + '<br/>';
 
-                                return head_1_2 + '<br/>' + head_2_3
- 
                                 // params.forEach((item) => {
                                 //     let tooltip_style = item.marker + item.seriesName;
                                 // });
                             },
+                            textStyle: {
+                                fontSize: 10
+                            },
+                            extraCssText: 'max-width:380px; white-space:pre-wrap',
                             axisPointer: {
                                 type: 'cross',
                                 crossStyle: {
@@ -798,17 +1023,17 @@
                     return result;
                 };
                 var data;
-                // var _this = this
-                this.axios.get('/tangying/api/v1/data/candlestick/'+stock_code+'/',).then( res => {
+                this.axios.get('/tangying/api/v1/data/candlestick/'+stock_code+'/').then( res => {
+                    console.log(stock_code,res.data)
                     data = splitData(res.data);
-                    // console.log(stock_code,data)
+                    console.log('split_data:',data)
                     candlestickChart.setOption(
                     (option = {
                         animation: false,
                         legend: {
                             bottom: 10,
                             left: 'center',
-                            data: ['Dow-Jones index', 'MA5', 'MA10', 'MA20', 'MA60']
+                            data: ['日K线', 'MA5', 'MA10', 'MA20', 'MA60']
                         },
                         tooltip: {
                           trigger: 'axis',
@@ -822,6 +1047,7 @@
                           textStyle: {
                             color: '#000'
                           },
+                        //   extraCssText: 'width: 120px;justify-content: space-between',
                           position: function (pos, params, el, elRect, size) {
                             const obj = {
                               top: 10
@@ -830,18 +1056,37 @@
                             return obj;
                           },
                           formatter: function (param) {
-                            param = param[0];
-                            // console.log(param);
-                            return [
-                                param.name + '<hr size=1 style="margin: 3px 0">',
-                                '开盘: ' + param.data[1] + '<br/>',
-                                '收盘: ' + param.data[2] + '<br/>',
-                                '最高: ' + param.data[3] + '<br/>',
-                                '最低: ' + param.data[4] + '<br/>',
-                                '成交量: ' + (param.data[5]/1000).toFixed(1) + '万手<br/>',
-                                '涨跌幅: ' + param.data[8] + '%<br/>',
-                                '振幅: ' + param.data[7] + '%'
-                            ].join('');
+                            let par;
+                            for (let i=0;i<param.length;i++) {
+                                if (param[i].seriesType == "candlestick") {
+                                    par = param[i];
+                                };
+                            };
+                            if (par.data[8]>0) {
+                                return [
+                                    par.name + '<hr size=1 style="margin: 3px 0">',
+                                    '开盘: ' + par.data[1] + '<br/>',
+                                    '收盘: ' + par.data[2] + '<br/>',
+                                    '最高: ' + par.data[3] + '<br/>',
+                                    '最低: ' + par.data[4] + '<br/>',
+                                    '成交量: ' + (par.data[5]/10000).toFixed(1) + '万手<br/>',
+                                    '成交额: ' + Math.round(par.data[6]/10000) + '万元<br/>',
+                                    '涨跌幅: <span style="color:red">+' + par.data[8] + '%</span><br/>',
+                                    '振幅: ' + par.data[7] + '%'
+                                ].join('');
+                            }else {
+                                return [
+                                    par.name + '<hr size=1 style="margin: 3px 0">',
+                                    '开盘: ' + par.data[1] + '<br/>',
+                                    '收盘: ' + par.data[2] + '<br/>',
+                                    '最高: ' + par.data[3] + '<br/>',
+                                    '最低: ' + par.data[4] + '<br/>',
+                                    '成交量: ' + (par.data[5]/10000).toFixed(1) + '万手<br/>',
+                                    '成交额: ' + Math.round(par.data[6]/10000) + '万元<br/>',
+                                    '涨跌幅: <span style="color:green">' + par.data[8] + '%</span><br/>',
+                                    '振幅: ' + par.data[7] + '%'
+                                ].join('');
+                            };
                           },
                         //   extraCssText: 'width: 170px'
                         },
@@ -889,14 +1134,14 @@
                         },
                         grid: [
                             {
-                            left: '10%',
-                            right: '8%',
+                            left: '5%',
+                            right: '5%',
                             height: '50%'
                             },
                             {
-                            left: '10%',
-                            right: '8%',
-                            top: '63%',
+                            left: '5%',
+                            right: '5%',
+                            top: '68%',
                             height: '16%'
                             }
                         ],
@@ -935,9 +1180,16 @@
                             },
                             {
                             scale: true,
+                            name: '成交量',
                             gridIndex: 1,
                             splitNumber: 2,
-                            axisLabel: { show: false },
+                            // axisLabel: { show: false },  //显示y轴刻度
+                            axisLabel: {
+                                formatter: function (value, index) {
+                                    return Math.round(value/10000) + '万';
+                                }
+                            },
+                            max: 'dataMax',
                             axisLine: { show: false },
                             axisTick: { show: false },
                             splitLine: { show: false }
@@ -945,15 +1197,15 @@
                         ],
                         dataZoom: [
                             {
-                            type: 'inside',
+                            type: 'inside',       //内置型数据区域缩放组件
                             xAxisIndex: [0, 1],
-                            start: 98,
+                            start: 0,             //数据窗口范围的起始百分比。范围是：0 ~ 100。表示 0% ~ 100%。
                             end: 100
                             },
                             {
                             show: true,
                             xAxisIndex: [0, 1],
-                            type: 'slider',
+                            type: 'slider',      //滑动条型数据区域缩放组件
                             top: '85%',
                             start: 98,
                             end: 100
@@ -961,7 +1213,7 @@
                         ],
                         series: [
                             {
-                            name: 'Dow-Jones index',
+                            name: '日K线',
                             type: 'candlestick',
                             data: data.values,
                             itemStyle: {
@@ -1042,7 +1294,7 @@
     //     border: 1px solid black;
     // }
    .left-charts {
-        width: 700px;
+        width: 800px;
         height: 100%;
         background-color: white;
     }
@@ -1082,6 +1334,10 @@
         text-align: center;
     }
 
+    .font-bold {
+        font-weight: bold
+    }
+
     .el-table__body-wrapper::-webkit-scrollbar {
 	    width: 0;
     }
@@ -1098,4 +1354,16 @@
         font-size: 30px;
     }
 
+    .el-table .good-row {
+        background: rgb(234, 111, 111);
+    }
+
+    .stock-info-annotation {
+        margin-left: 20px;
+        margin-top: 5px;
+    }
+
+    .industry-tooltip {
+        width: 400px;
+    }
 </style>
