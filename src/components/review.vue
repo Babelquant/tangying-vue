@@ -204,6 +204,12 @@
                     size="mini"
                     @click="searchConcepts">选股</el-button>
                 </span>
+                <!-- 概念贴合开关 -->
+                <el-switch
+                style="margin-left:20px"
+                v-model="isMatch"
+                inactive-text="贴合概念">
+                </el-switch>
             </div>
             <!-- 概念列表 -->
             <div style="height:420px;">
@@ -347,10 +353,10 @@
                 shangzheng_index: null,
                 timer1: null,
                 timer2: null,
-                timer3: null,
                 stock_info: null,
                 dialogBuyFormVisible: false,
                 showIndustryDetail: false,
+                isMatch: true,
                 buyForm: {
                     name: '',
                     price: 0,
@@ -381,17 +387,8 @@
             this.timer1 = setInterval(() => {
                 setTimeout(this.shangzIndex(),0)
             },60000);
-            // 1分钟更新一次当前涨停板
-            this.timer2 = setInterval(() => {
-                let _this = this
-                setTimeout(function(){
-                    _this.axios.get('/tangying/api/v1/data/new_limitup_pool/').then( res => {
-                    _this.todayLimitupNum = res.data.length
-                });
-                },0)
-            },60000);
             //60s更新一次最新涨停行业分析
-            this.timer3 = setInterval(() => {
+            this.timer2 = setInterval(() => {
                 setTimeout(this.setIndustryRankChart(),0)
             },60000);
         },
@@ -411,11 +408,8 @@
                 this.axios.get('/tangying/api/v1/data/limitup_stocks/').then( res => {
                     this.limituptableData = res.data
                 });
-                this.axios.get('/tangying/api/v1/data/new_limitup_pool/').then( res => {
-                    this.todayLimitupNum = res.data.length
-                });
-                this.axios.get('/tangying/api/v1/data/pre_limitup_pool/').then( res => {
-                    this.yesterdayLimitupNum = res.data.length
+                this.axios.get('/tangying/api/v1/data/pre_limitup_count/').then( res => {
+                    this.yesterdayLimitupNum = res.data
                 });
             },
             shangzIndex() {
@@ -523,22 +517,26 @@
             searchConcepts() {
                 // console.log('get concept:',this.search_concepts);
                 let concepts = this.search_concepts;
-                this.concept_loading = true
+                let is_match = 1;
+                this.concept_loading = true;
                 // this.$set(this.loading,'concept',true)
                 if(concepts.length != 0){
                     concepts = concepts.join(',');
-                    this.axios.get('/tangying/api/v1/data/concept_strategy/'+concepts+'/').then( res => {
-                        this.conceptstretagytableData = res.data
+                    if (this.isMatch != true) {
+                        is_match = 0;
+                    };
+                    this.axios.get('/tangying/api/v1/data/concept_strategy/'+concepts+'/'+is_match+'/').then( res => {
+                        this.conceptstretagytableData = res.data;
                         // this.$set(this.loading,'concept',false)
-                        this.concept_loading = false
+                        this.concept_loading = false;
                     });
                 }
             },
             searchSharpfall() {
                 this.sharpfall_loading = true
                 this.axios.get('/tangying/api/v1/data/sharpfall_strategy/').then( res => {
-                        this.sharpfallstretagytableData = res.data
-                        this.sharpfall_loading = false
+                        this.sharpfallstretagytableData = res.data;
+                        this.sharpfall_loading = false;
                     });
             },
             formatterDate(date) {
@@ -691,41 +689,49 @@
                 function splitData(rawData) {
                     let categoryData = [];
                     let values = [];
+                    let count = 0;
                     // for (let k in rawData) {
                     //     console.log(k,rawData[k].length);
                     //     categoryData.push(k);
                     //     values.push({'value':rawData[k].length,'stocks':rawData[k]}); 
                     // }
                     categoryData = Object.keys(rawData).sort(function(pre,next){return rawData[pre].length-rawData[next].length});  //升序
-                    if (categoryData.length>20) {
-                        categoryData = categoryData.slice(20);
-                    };
                     categoryData.forEach((item)=>{
-                        values.push({'value':rawData[item].length,'stocks':rawData[item]}); 
+                        let num = rawData[item].length;
+                        values.push({'value':num,'stocks':rawData[item]}); 
+                        count += num;
                     });
+                    let industry_count = categoryData.length;
+                    if (industry_count>20) {
+                        categoryData = categoryData.slice(industry_count-20);
+                        values = values.slice(industry_count-20);
+                    };
                     return {
                         categoryData: categoryData,  
-                        values: values
+                        values: values,
+                        count: count
                     };
                 };
                 var option;
                 var data;
                 var _this = this;
+
                 this.axios.get('/tangying/api/v1/data/limitup_industry/').then( res => {
                     data = splitData(res.data);
+                    _this.todayLimitupNum = data.count;
                     option = {
                         tooltip: {
                             trigger: 'axis',
-                            enterable: 'true',
+                            // enterable: 'true',
                             formatter: function(params) { 
                                 // console.log('params:',params);
                                 _this.limitupIndustryTableData = params[0].data['stocks'];
                                 _this.showIndustryDetail = true;
                                 return _this.$refs.industryTable;
                             },
-                            textStyle: {
-                                fontSize: 7
-                            },
+                            // textStyle: {
+                            //     fontSize: 7
+                            // },
                             position: function (point) {
                                 // 固定在顶部
                                 return [point[0], '10%'];
@@ -824,14 +830,14 @@
                     };
                     // console.log('data_set:',data_set)
 
-                    function splitArray(arr, len){
-                        let index = 0;
-                        let new_arr = [];
-                        while(index < arr.length){
-                            new_arr.push(arr.slice(index, index+=len));
-                        }
-                        return new_arr;
-                    };
+                    // function splitArray(arr, len){
+                    //     let index = 0;
+                    //     let new_arr = [];
+                    //     while(index < arr.length){
+                    //         new_arr.push(arr.slice(index, index+=len));
+                    //     }
+                    //     return new_arr;
+                    // };
                     option = {
                         dataset: {
                             source: data_set
@@ -1294,7 +1300,7 @@
     //     border: 1px solid black;
     // }
    .left-charts {
-        width: 800px;
+        width: 820px;
         height: 100%;
         background-color: white;
     }
@@ -1364,6 +1370,6 @@
     }
 
     .industry-tooltip {
-        width: 400px;
+        width: 380px;
     }
 </style>
