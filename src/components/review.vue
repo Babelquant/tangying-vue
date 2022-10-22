@@ -105,10 +105,10 @@
                         </el-table-column>
                     </el-table>
                     <div class="flex:1">
-                    <div v-if="stretagyData.length != 0">
-                        <vue-marquee style="height:22px;" direction="top" :duration=stretagyData.length*2000 :showProgress="false">
-                            <vue-marquee-slide v-for="(item,index) in stretagyData" :key="index">
-                                <div style="height:20px;">打板策略：{{ item.Name }} &nbsp; 概念：{{ item._Reason_type}}</div>
+                    <div v-if="industryStretagyData.length != 0">
+                        <vue-marquee style="height:22px;" direction="top" :duration=industryStretagyData.length*2000 :showProgress="false">
+                            <vue-marquee-slide v-for="(item,index) in industryStretagyData" :key="index">
+                                <div style="height:20px;">埋伏行业：{{ item.Industry }} &nbsp; 排头：{{ item.Stocks}}</div>
                             </vue-marquee-slide>
                         </vue-marquee>
                     </div>
@@ -336,13 +336,14 @@
         data() {
             return {
                 industryRankChart: null,
+                limitupStatisticChart: null,
                 limituptableData: [],
                 limitupIndustryTableData: [],
                 conceptstretagytableData: [],
                 sharpfallstretagytableData: [],
                 allsecurities: [],
                 allconcepts: [],
-                stretagyData: [],
+                industryStretagyData: [],
                 search_stock: '',
                 limituptable_search: '',
                 search_concepts: null,
@@ -352,7 +353,6 @@
                 yesterdayLimitupNum: 0,
                 shangzheng_index: null,
                 timer1: null,
-                timer2: null,
                 stock_info: null,
                 dialogBuyFormVisible: false,
                 showIndustryDetail: false,
@@ -367,29 +367,27 @@
         beforeDestroy() {
             // window.clearInterval(this.timer);
             clearTimeout(this.timer1);
-            clearTimeout(this.timer2);
-            clearTimeout(this.timer3);
         },
         //created钩子里的data变量不用v-if判断,因为是在dom之前初始化的
         created() {
             this.fullData();
             this.shangzIndex();
-            this.limitupStrategy();
         },
         mounted() {
             this.initConceptRankChart();
             this.initIndustryRankChart();
             this.setIndustryRankChart();
             this.initLimitupStatisticChart();
+            this.setLimitupStatisticChart();
             this.loadAllSecurities();
+            this.updateLimituptableData();
 
-            //60s更新一次上证指数
+            //60s更新一次
             this.timer1 = setInterval(() => {
-                setTimeout(this.shangzIndex(),0)
-            },60000);
-            //60s更新一次最新涨停行业分析
-            this.timer2 = setInterval(() => {
-                setTimeout(this.setIndustryRankChart(),0)
+                setTimeout(this.shangzIndex(),0)  //上证指数
+                setTimeout(this.setIndustryRankChart(),0) //涨停行业排行
+                setTimeout(this.setLimitupStatisticChart(),0) //涨停强度分析
+                setTimeout(this.updateLimituptableData(),0) //涨停池详情
             },60000);
         },
         computed: {
@@ -405,25 +403,22 @@
         },
         methods: {
             fullData () {
-                this.axios.get('/tangying/api/v1/data/limitup_stocks/').then( res => {
-                    this.limituptableData = res.data
-                });
+                // this.axios.get('/tangying/api/v1/data/limitup_stocks/').then( res => {
+                //     this.limituptableData = res.data
+                // });
                 this.axios.get('/tangying/api/v1/data/pre_limitup_count/').then( res => {
                     this.yesterdayLimitupNum = res.data
+                });
+            },
+            updateLimituptableData() {
+                this.axios.get('/tangying/api/v1/data/limitup_stocks/').then( res => {
+                    this.limituptableData = res.data
                 });
             },
             shangzIndex() {
                 this.axios.get('/tangying/api/v1/data/sz_index/').then( res => {
                     // console.log('ret:',res.data[0])
                     this.shangzheng_index = res.data[0]
-                });
-            },
-            limitupStrategy() {
-                this.axios.get('/tangying/api/v1/data/limitup_strategy/').then( res => {
-                    // this.stretagyData = res.data
-                    for (let i = 0; i < res.data.length; i++) {
-                        this.stretagyData.push(res.data[i]);
-                    }
                 });
             },
             stockQuerySearch(queryString, cb) {
@@ -690,6 +685,7 @@
                     let categoryData = [];
                     let values = [];
                     let count = 0;
+                    let predictIndustry = [];
                     // for (let k in rawData) {
                     //     console.log(k,rawData[k].length);
                     //     categoryData.push(k);
@@ -698,7 +694,16 @@
                     categoryData = Object.keys(rawData).sort(function(pre,next){return rawData[pre].length-rawData[next].length});  //升序
                     categoryData.forEach((item)=>{
                         let num = rawData[item].length;
-                        values.push({'value':num,'stocks':rawData[item]}); 
+                        values.push({'value':num,'stocks':rawData[item]});
+                        let stocks = rawData[item].filter(function(value) { 
+                            return value['连板数'] == 2}); 
+                        if (stocks.length > 0) {
+                            let names = [];
+                            stocks.forEach((item)=>{
+                                names.push(item.名称);
+                            });
+                            predictIndustry.push({'Industry':item,'Stocks':names.join(' ')});
+                        };
                         count += num;
                     });
                     let industry_count = categoryData.length;
@@ -709,7 +714,8 @@
                     return {
                         categoryData: categoryData,  
                         values: values,
-                        count: count
+                        count: count,
+                        predictIndustry: predictIndustry
                     };
                 };
                 var option;
@@ -719,6 +725,7 @@
                 this.axios.get('/tangying/api/v1/data/limitup_industry/').then( res => {
                     data = splitData(res.data);
                     _this.todayLimitupNum = data.count;
+                    _this.industryStretagyData = data.predictIndustry;
                     option = {
                         tooltip: {
                             trigger: 'axis',
@@ -780,8 +787,10 @@
 
             },
             initLimitupStatisticChart() {
-                var chartDom = document.getElementById('limitupStatistic');
-                var myChart = this.$echarts.init(chartDom);
+                const chartDom = document.getElementById('limitupStatistic');
+                this.limitupStatisticChart = this.$echarts.init(chartDom);
+            },
+            setLimitupStatisticChart() {
                 var option;
                 var data_set = [];
 
@@ -969,7 +978,7 @@
                             }
                         ]
                     };
-                    myChart.setOption(option);
+                    this.limitupStatisticChart.setOption(option);
                 })
 
             },
@@ -1030,11 +1039,9 @@
                 };
                 var data;
                 this.axios.get('/tangying/api/v1/data/candlestick/'+stock_code+'/').then( res => {
-                    console.log(stock_code,res.data)
                     data = splitData(res.data);
-                    console.log('split_data:',data)
-                    candlestickChart.setOption(
-                    (option = {
+
+                    option = {
                         animation: false,
                         legend: {
                             bottom: 10,
@@ -1106,23 +1113,6 @@
                             backgroundColor: '#777'
                             }
                         },
-                        // toolbox: {
-                        //     feature: {
-                        //     dataZoom: {
-                        //         yAxisIndex: false
-                        //     },
-                        //     brush: {
-                        //         type: ['lineX', 'clear']
-                        //     }
-                        //     }
-                        // },
-                        // brush: {
-                        //     xAxisIndex: 'all',
-                        //     brushLink: 'all',
-                        //     outOfBrush: {
-                        //     colorAlpha: 0.1
-                        //     }
-                        // },
                         visualMap: {
                             show: false,
                             seriesIndex: 5,
@@ -1277,19 +1267,9 @@
                             data: data.volumes
                             }
                         ]
-                    }),
-                    true);
+                    };
+                    candlestickChart.setOption(option);
                 });
-                // candlestickChart.dispatchAction({
-                //     type: 'brush',
-                //     areas: [
-                //     {
-                //         brushType: 'lineX',
-                //         coordRange: ['2022-07-02', '2022-07-20'],
-                //         xAxisIndex: 0
-                //     }
-                //     ]
-                // });
             }
         }
 }
