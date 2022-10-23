@@ -57,7 +57,7 @@
                         style="width: 100%">
                         <el-table-column
                         prop="Name"
-                        label="股票"
+                        label="股票名称"
                         width="80">
                         </el-table-column>
                         <el-table-column
@@ -268,7 +268,7 @@
                     <el-table-column
                     fixed="right"
                     label="操作"
-                    width="80">
+                    width="60">
                     <template slot-scope="scope">
                         <el-popover
                         placement="left"
@@ -371,7 +371,7 @@
         //created钩子里的data变量不用v-if判断,因为是在dom之前初始化的
         created() {
             this.fullData();
-            this.shangzIndex();
+            // this.shangzIndex();
         },
         mounted() {
             this.initConceptRankChart();
@@ -573,12 +573,13 @@
                     option = {
                     grid: {
                         top: 10,
-                        bottom: 30,
+                        bottom: 5,
                         left: 80,
                         right: 20
                     },
                     xAxis: {
                         max: 'dataMax',
+                        show: false,
                         axisLabel: {
                         formatter: function (n) {  //n为类目值
                             return Math.round(n) + '';
@@ -646,7 +647,7 @@
                         {
                             type: 'text',
                             right: 16,
-                            bottom: 50,
+                            bottom: 5,
                             style: { //z轴样式
                             text: startDate,  //z轴文本
                             font: 'bolder 20px monospace',
@@ -756,12 +757,13 @@
                         // },    
                         grid: {
                             top: 10,
-                            bottom: 30,
+                            bottom: 5,
                             left: 70,
                             right: 20
                         },
                         xAxis: {
                             type: 'value',
+                            show: false,
                             boundaryGap: [0, 0.01]
                         },
                         yAxis: {
@@ -1083,7 +1085,9 @@
                                     '最高: ' + par.data[3] + '<br/>',
                                     '最低: ' + par.data[4] + '<br/>',
                                     '成交量: ' + (par.data[5]/10000).toFixed(1) + '万手<br/>',
-                                    '成交额: ' + Math.round(par.data[6]/10000) + '万元<br/>',
+                                    // '成交额: ' + Math.round(par.data[6]/10000) + '万元<br/>',
+                                    '成交额: ',
+                                    par.data[6]/10000>10000?(par.data[6]/100000000).toFixed(1) + '亿元<br/>':Math.round(par.data[6]/10000) + '万元<br/>',
                                     '涨跌幅: <span style="color:red">+' + par.data[8] + '%</span><br/>',
                                     '振幅: ' + par.data[7] + '%'
                                 ].join('');
@@ -1095,7 +1099,8 @@
                                     '最高: ' + par.data[3] + '<br/>',
                                     '最低: ' + par.data[4] + '<br/>',
                                     '成交量: ' + (par.data[5]/10000).toFixed(1) + '万手<br/>',
-                                    '成交额: ' + Math.round(par.data[6]/10000) + '万元<br/>',
+                                    '成交额: ',
+                                    par.data[6]/10000>10000?(par.data[6]/100000000).toFixed(1) + '亿元<br/>':Math.round(par.data[6]/10000) + '万元<br/>',
                                     '涨跌幅: <span style="color:green">' + par.data[8] + '%</span><br/>',
                                     '振幅: ' + par.data[7] + '%'
                                 ].join('');
@@ -1341,7 +1346,7 @@
     }
 
     .el-table .good-row {
-        background: rgb(234, 111, 111);
+        background: rgba(251, 3, 3, 0.1);
     }
 
     .stock-info-annotation {
