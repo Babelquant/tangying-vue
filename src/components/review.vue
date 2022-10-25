@@ -12,7 +12,7 @@
                     style="width: 100%">
                         <el-table-column
                             prop="名称"
-                            label="名称"
+                            label="股票名称"
                             width="70">
                         </el-table-column>
                         <el-table-column
@@ -697,7 +697,8 @@
                         let num = rawData[item].length;
                         values.push({'value':num,'stocks':rawData[item]});
                         let stocks = rawData[item].filter(function(value) { 
-                            return value['连板数'] == 2}); 
+                            return value['连板数'] == 2 || value['首次封板时间'] == "09:25";
+                        }); 
                         if (stocks.length > 0) {
                             let names = [];
                             stocks.forEach((item)=>{
@@ -724,8 +725,10 @@
                 var _this = this;
 
                 this.axios.get('/tangying/api/v1/data/limitup_industry/').then( res => {
+                    console.log('res.data:',res.data);
                     data = splitData(res.data);
                     _this.todayLimitupNum = data.count;
+                    console.log('predictIndustry:',data.predictIndustry);
                     _this.industryStretagyData = data.predictIndustry;
                     option = {
                         tooltip: {
@@ -776,6 +779,7 @@
                         series: [
                             {
                             type: 'bar',
+                            barMaxWidth: 15,
                             label: {
                                 show: true,
                                 position: "right"
@@ -785,6 +789,8 @@
                         ]
                     };
                     this.industryRankChart.setOption(option);
+                }).catch(function(error){
+                    console.log('error:',error)
                 });
 
             },
