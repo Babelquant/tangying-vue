@@ -107,8 +107,8 @@
                     <div class="flex:1">
                     <div v-if="industryStretagyData.length != 0">
                         <vue-marquee style="height:22px;" direction="top" :duration=industryStretagyData.length*2000 :showProgress="false">
-                            <vue-marquee-slide v-for="(item,index) in industryStretagyData" :key="index">
-                                <div style="height:20px;">埋伏行业：{{ item.Industry }} &nbsp; 排头：{{ item.Stocks}}</div>
+                            <vue-marquee-slide v-for="item in industryStretagyData" :content="item">
+                                <div style="height:20px;">埋伏行业：{{ item.Industry }} &nbsp; 领涨：{{ item.Stocks}}</div>
                             </vue-marquee-slide>
                         </vue-marquee>
                     </div>
@@ -412,7 +412,8 @@
             },
             updateLimituptableData() {
                 this.axios.get('/tangying/api/v1/data/limitup_stocks/').then( res => {
-                    this.limituptableData = res.data
+                    this.limituptableData.length = 0;
+                    this.limituptableData = res.data;
                 });
             },
             shangzIndex() {
@@ -725,10 +726,10 @@
                 var _this = this;
 
                 this.axios.get('/tangying/api/v1/data/limitup_industry/').then( res => {
-                    console.log('res.data:',res.data);
+                    // console.log('res.data:',res.data);
                     data = splitData(res.data);
                     _this.todayLimitupNum = data.count;
-                    console.log('predictIndustry:',data.predictIndustry);
+                    _this.industryStretagyData.length = 0;//清空原来数组数据
                     _this.industryStretagyData = data.predictIndustry;
                     option = {
                         tooltip: {
