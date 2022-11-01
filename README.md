@@ -1,6 +1,8 @@
-# tangying1
+# tangying
 
-## Project setup
+## 安装nginx
+
+
 ```
 npm install
 ```

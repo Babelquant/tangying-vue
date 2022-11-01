@@ -104,15 +104,15 @@
                             </template>
                         </el-table-column>
                     </el-table>
-                    <div class="flex:1">
-                    <div v-if="industryStretagyData.length != 0">
+                    <!-- <div class="flex:1"> -->
+                    <div v-if="industryStretagyData.length != 0" class="flex:1">
                         <vue-marquee style="height:22px;" direction="top" :duration=industryStretagyData.length*2000 :showProgress="false">
                             <vue-marquee-slide v-for="item in industryStretagyData" :content="item">
                                 <div style="height:20px;">埋伏行业：{{ item.Industry }} &nbsp; 领涨：{{ item.Stocks}}</div>
                             </vue-marquee-slide>
                         </vue-marquee>
                     </div>
-                </div>
+                <!-- </div> -->
                 </div>
 
                 <div class="flex column" style="width: 420px;">
@@ -730,6 +730,7 @@
                     data = splitData(res.data);
                     _this.todayLimitupNum = data.count;
                     _this.industryStretagyData.length = 0;//清空原来数组数据
+                    // document.getElementById("predict").innerHTML="";
                     _this.industryStretagyData = data.predictIndustry;
                     option = {
                         tooltip: {
